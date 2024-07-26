@@ -1,4 +1,0 @@
-D:/Programming daigaku/Automata Theory/lab2/cmake-build-debug/CMakeFiles/tree.dir
-D:/Programming daigaku/Automata Theory/lab2/cmake-build-debug/CMakeFiles/main.dir
-D:/Programming daigaku/Automata Theory/lab2/cmake-build-debug/CMakeFiles/edit_cache.dir
-D:/Programming daigaku/Automata Theory/lab2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
