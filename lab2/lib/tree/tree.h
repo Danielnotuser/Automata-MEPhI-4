@@ -3,6 +3,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 
 class Node {
@@ -18,8 +19,8 @@ class Node {
 class BraceNode : public Node {
     public:
         int start, end;
-        BraceNode() : Node(), start(-1), end(-1) {};
-        explicit BraceNode(char info) : Node(info), start(-1), end(-1) {};
+        BraceNode() : Node(), start(0), end(0) {};
+        explicit BraceNode(char info) : Node(info), start(0), end(0) {};
         BraceNode(int start, int end) : Node(), start(start), end(end) {};
         ~BraceNode() = default;
 };
@@ -28,6 +29,7 @@ class STree {
     private:
         Node *root;
         std::map<std::string, Node*> groups;
+        std::vector<char> alphabet;
     public:
         // constructors
         STree() : root(nullptr) {};
@@ -35,9 +37,10 @@ class STree {
         // getters
         Node *get_root() {return root;};
         std::map<std::string, Node*> get_groups() {return groups;};
+        std::vector<char> get_alphabet() {return alphabet;};
         // synthesis & detour
-        void synt(std::string&);
-        void lcp();
+        void synt(const std::string&);
+        void lcp(std::ostream &c);
 
         ~STree();
 };
