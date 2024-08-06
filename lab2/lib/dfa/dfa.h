@@ -15,7 +15,7 @@ class DFA {
 private:
     State *start;
     std::vector<State*> end;
-    std::vector<StateNFA*> eps_closure(StateNFA*);
+    void eps_closure(StateNFA* s, std::vector<StateNFA*> &res);
     std::vector<StateNFA*> transition(std::vector<StateNFA*> &v, char c);
     std::vector<char> alphabet;
 public:

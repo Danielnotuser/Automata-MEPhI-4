@@ -5,23 +5,19 @@
 
 #include "dfa.h"
 
-std::vector<StateNFA*> DFA::eps_closure(StateNFA* s)
+void DFA::eps_closure(StateNFA* s, std::vector<StateNFA*> &res)
 {
-    std::vector<StateNFA*> res;
     res.push_back(s);
     for (auto i : s->epsilon)
     {
+        if (std::find(res.begin(), res.end(), i) != res.end()) continue;
         if (!i->epsilon.empty()) {
-            std::vector<StateNFA *> temp = eps_closure(i);
-            for (auto j : temp)
-                res.push_back(j);
-            temp.clear();
+            eps_closure(i, res);
         }
         else
             res.push_back(i);
 
     }
-    return res;
 }
 
 std::vector<StateNFA*> DFA::transition(std::vector<StateNFA*> &v, char c)
@@ -37,9 +33,10 @@ DFA::DFA(NFA& n)
     alphabet = n.get_alphabet();
     std::vector<State*> states; // DFA unprocessed states
     std::vector<std::vector<StateNFA*>> nfa_states;
-    State *fir = new State;
+    auto *fir = new State;
     start = fir;
-    std::vector<StateNFA*> temp = eps_closure(n.get_start());
+    std::vector<StateNFA*> temp;
+    eps_closure(n.get_start(), temp);
     nfa_states.push_back(temp);
     states.push_back(fir);
     size_t i = 0;
@@ -53,7 +50,8 @@ DFA::DFA(NFA& n)
             std::vector<StateNFA*> temp_tr;
             for (auto v : tr)
             {
-                auto temp_2 = eps_closure(v);
+                std::vector<StateNFA*> temp_2;
+                eps_closure(v, temp_2);
                 for (auto t : temp_2)
                     temp_tr.push_back(t);
             }
@@ -69,10 +67,10 @@ DFA::DFA(NFA& n)
         i++;
     }
     StateNFA *last = n.get_end();
-    for (size_t i = 0; i < nfa_states.size(); i++)
+    for (size_t j = 0; j < nfa_states.size(); j++)
     {
-        if (!nfa_states[i].empty() && std::find(nfa_states[i].begin(), nfa_states[i].end(), last) != nfa_states[i].end())
-            end.push_back(states[i]);
+        if (!nfa_states[j].empty() && std::find(nfa_states[j].begin(), nfa_states[j].end(), last) != nfa_states[j].end())
+            end.push_back(states[j]);
     }
 }
 

@@ -4,7 +4,7 @@
 int main()
 {
     // "(<beb>n-p?-r-q)?-(<ded>y-t)?|a-h{,2}"
-	std::string pat = "m-n-p|r+|t-(r|p)+";
+	std::string pat = ".";
     std::cout << pat << std::endl;
     STree tr;
     try {
@@ -16,7 +16,7 @@ int main()
         nf_auto.print(f);
         f.close();*/
         DFA df_auto(nf_auto);
-        std::string ch = "tp";
+        std::string ch = " ";
         std::cout << "Checking string \"" << ch << "\" . . . ";
         if (df_auto.check(ch)) std::cout << "This string is ok!" << std::endl;
         else std::cout << "This string is NOT ok" << std::endl;
