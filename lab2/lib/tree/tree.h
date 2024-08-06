@@ -26,18 +26,13 @@ class BraceNode : public Node {
 };
 
 class STree {
-    private:
+    public:
         Node *root;
         std::map<std::string, Node*> groups;
         std::vector<char> alphabet;
-    public:
         // constructors
         STree() : root(nullptr) {};
         STree(Node *rt) : root(rt) {};
-        // getters
-        Node *get_root() {return root;};
-        std::map<std::string, Node*> get_groups() {return groups;};
-        std::vector<char> get_alphabet() {return alphabet;};
         // synthesis & detour
         void synt(const std::string&);
         void lcp(std::ostream &c);

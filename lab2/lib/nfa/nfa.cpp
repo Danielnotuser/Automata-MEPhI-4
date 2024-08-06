@@ -122,8 +122,8 @@ NFA NFA::recur(Node *rt)
 
 NFA::NFA(STree &tr)
 {
-    alphabet = tr.get_alphabet();
-    NFA n = recur(tr.get_root());
+    alphabet = tr.alphabet;
+    NFA n = recur(tr.root);
     start = n.start;
     end = n.end;
 }

@@ -12,7 +12,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -g")
 
 add_library(tree lib/tree/tree.h lib/tree/tree.cpp)
 add_library(nfa lib/nfa/nfa.h lib/nfa/nfa.cpp)
-add_library(dfa lib/dfa/dfa.h lib/dfa/dfa.cpp)
+add_library(dfa lib/dfa/dfa.h lib/dfa/dfa.cpp
+)
 
 link_libraries(tree nfa dfa)
 

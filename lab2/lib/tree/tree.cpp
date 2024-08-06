@@ -6,6 +6,14 @@
 
 #include "tree.h"
 
+std::vector<char> all_alph()
+{
+    std::vector<char> res;
+    for (int i = 32; i < 127; i++)
+        res.push_back(static_cast<char>(i));
+    return res;
+}
+
 void STree::synt(const std::string &pat_inp)
 {
     std::string spec = "<>{,}()+-|?&";
@@ -46,6 +54,7 @@ void STree::synt(const std::string &pat_inp)
             }
             if (spec.find(pat[i]) == spec.npos || (pat[i] == '.' && pat[i - 1] != '&'))
             {
+                if (pat[i] == '.') alphabet = all_alph();
                 nodes[i]->info = pat[i];
                 if (std::find(alphabet.begin(), alphabet.end(), pat[i]) == alphabet.end()) alphabet.push_back(pat[i]);
             }

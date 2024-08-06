@@ -71,6 +71,8 @@ DFA::DFA(NFA& n)
     {
         if (!nfa_states[j].empty() && std::find(nfa_states[j].begin(), nfa_states[j].end(), last) != nfa_states[j].end())
             end.push_back(states[j]);
+        else
+            not_end.push_back(states[j]);
     }
 }
 
@@ -84,4 +86,111 @@ int DFA::check(const std::string &s)
     }
     if (std::find(end.begin(), end.end(), cur) != end.end()) return 1;
     else return 0;
+}
+
+DFA::DFA(DFA&&d) noexcept
+{
+    start = d.start;
+    not_end = d.not_end;
+    alphabet = d.alphabet;
+    end = d.end;
+    d.start = nullptr;
+    d.not_end = std::vector<State*>();
+    d.end = std::vector<State*>();
+    d.alphabet = std::vector<char>();
+}
+
+bool DFA::same_group(std::vector<std::vector<State*>>& state_groups, State* s1, State *s2)
+{
+    for (auto c: alphabet)
+    {
+        for (auto s_v : state_groups)
+        {
+            for (auto s : s_v)
+            {
+                if ((s1->edge[c] == s && s2->edge[c] != s) ||
+                        (s2->edge[c] == s && s1->edge[c] != s))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+void del(std::vector<State*> &vect, std::vector<State*>&temp)
+{
+    for (auto t : temp)
+    {
+        for (size_t i = 0; i < vect.size(); i++)
+        {
+            if (vect[i] == t)
+            {
+                vect.erase(vect.begin() + i);
+                break;
+            }
+        }
+    }
+}
+
+bool has_end(std::vector<State*> &s1, std::vector<State*> s2)
+{
+    for (auto i : s2)
+        for (auto j : s1)
+            if (i == j) return true;
+    return false;
+}
+
+void DFA::minimize()
+{
+    std::vector<std::vector<State*>> state_groups;
+    state_groups.push_back(end);
+    state_groups.push_back(not_end);
+    for (size_t i = 0; i < state_groups.size(); i++)
+    {
+        if (state_groups[i].size() < 2) continue;
+        int new_groups = 0;
+        for (size_t j = 0; j < state_groups[i].size() - 1; j++)
+        {
+            std::vector<State*> temp;
+            temp.push_back(state_groups[i][j]);
+            for (size_t k = j + 1; k < state_groups[i].size(); k++)
+            {
+                if(same_group(state_groups, state_groups[i][j], state_groups[i][k]))
+                {
+                    temp.push_back(state_groups[i][k]);
+                }
+            }
+            if (temp.size() > 1)
+            {
+                del(state_groups[i], temp);
+                j = 0;
+                new_groups++;
+                state_groups.push_back(temp);
+            }
+        }
+        if (state_groups[i].empty()) state_groups.erase(state_groups.begin() + i);
+        if (!new_groups) break;
+    }
+    std::vector<State*> m_states(state_groups.size());
+    std::vector<State*> new_end;
+    for (size_t i = 0; i < state_groups.size(); i++)
+    {
+        if (std::find(state_groups[i].begin(), state_groups[i].end(), start) != state_groups[i].end())
+            start = m_states[i];
+        if (has_end(state_groups[i], end))
+            new_end.push_back(m_states[i]);
+        for (auto c : alphabet)
+        {
+            for (size_t j = 0; j < state_groups.size(); j++)
+            {
+                if (std::find(state_groups[j].begin(), state_groups[j].end(), state_groups[i][0]->edge[c]) != state_groups[j].end())
+                {
+                    m_states[i]->edge[c] = m_states[j];
+                    break;
+                }
+            }
+        }
+    }
 }

@@ -15,12 +15,16 @@ class DFA {
 private:
     State *start;
     std::vector<State*> end;
-    void eps_closure(StateNFA* s, std::vector<StateNFA*> &res);
-    std::vector<StateNFA*> transition(std::vector<StateNFA*> &v, char c);
+    std::vector<State*> not_end;
     std::vector<char> alphabet;
+    void eps_closure(StateNFA*, std::vector<StateNFA*>&);
+    std::vector<StateNFA*> transition(std::vector<StateNFA*>&, char);
+    bool same_group(std::vector<std::vector<State*>>&,State*, State*);
 public:
     DFA() : end() {start = new State;};
     explicit DFA(NFA&);
+    DFA(DFA&&d) noexcept;
+    void minimize();
     int check(const std::string&);
 };
 
