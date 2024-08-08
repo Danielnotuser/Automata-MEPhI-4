@@ -52,13 +52,8 @@ void STree::synt(const std::string &pat_inp)
                 i++;
                 continue;
             }
-            if (spec.find(pat[i]) == spec.npos || (pat[i] == '.' && pat[i - 1] != '&'))
-            {
-                if (pat[i] == '.') alphabet = all_alph();
-                nodes[i]->info = pat[i];
-                if (std::find(alphabet.begin(), alphabet.end(), pat[i]) == alphabet.end()) alphabet.push_back(pat[i]);
-            }
-            if (pat[i - 1] == '&')
+
+            if (pat[i - 1] == '&' && !nodes[i-1]->info)
             {
                 if (std::find(alphabet.begin(), alphabet.end(), pat[i]) == alphabet.end()) alphabet.push_back(pat[i]);
                 nodes[i]->info = pat[i];
@@ -69,6 +64,12 @@ void STree::synt(const std::string &pat_inp)
                 sec--;
                 i--;
             }
+            else if (spec.find(pat[i]) == spec.npos || pat[i] == '.')
+            {
+                if (pat[i] == '.') alphabet = all_alph();
+                nodes[i]->info = pat[i];
+                if (std::find(alphabet.begin(), alphabet.end(), pat[i]) == alphabet.end()) alphabet.push_back(pat[i]);
+            }
             i++;
 
         }
@@ -76,7 +77,7 @@ void STree::synt(const std::string &pat_inp)
         i = fir + 1;
         while (i < sec)
         {
-            if (pat[i] == '{')
+            if (pat[i] == '{' && !nodes[i]->info)
             {
                 size_t j = i;
                 BraceNode *b = new BraceNode(pat[i]);
@@ -110,7 +111,7 @@ void STree::synt(const std::string &pat_inp)
         i = fir + 1;
         while (i < sec)
         {
-            if (pat[i] == '+' || pat[i] == '?')
+            if ((pat[i] == '+' || pat[i] == '?') && !nodes[i]->info)
             {
                 nodes[i]->info = pat[i];
                 nodes[i]->left = nodes[i - 1];
@@ -125,7 +126,7 @@ void STree::synt(const std::string &pat_inp)
         i = fir + 1;
         while (i < sec)
         {
-            if (pat[i] == '-')
+            if (pat[i] == '-' && !nodes[i]->info)
             {
                 nodes[i]->info = pat[i];
                 nodes[i]->left = nodes[i - 1];
@@ -143,7 +144,7 @@ void STree::synt(const std::string &pat_inp)
         i = fir + 1;
         while (i < sec)
         {
-            if (pat[i] == '|')
+            if (pat[i] == '|' && !nodes[i]->info)
             {
                 nodes[i]->info = pat[i];
                 nodes[i]->left = nodes[i - 1];

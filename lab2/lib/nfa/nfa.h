@@ -38,7 +38,7 @@ public:
     // overload
     NFA &operator=(NFA&& n) noexcept {start = n.start; end = n.end; n.start = nullptr; n.end = nullptr; return *this;};
     // other
-    void print(std::ofstream &);
+    void print(const std::string&);
 
 };
 

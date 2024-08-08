@@ -26,11 +26,11 @@ TEST_CASE("Tree testing")
     {
         Node *n = new Node(static_cast<char>(info(rng)));
         STree tr(n);
-        REQUIRE(tr.get_root() == n);
+        REQUIRE(tr.root == n);
         REQUIRE_THROWS(tr.synt("(m-n"));
         REQUIRE_NOTHROW(tr.synt("m-n-p+-r?-(<name>t-p-r)|k"));
-        REQUIRE(tr.get_root()->info == '|');
-        REQUIRE(tr.get_groups()["name"]->info == '-');
+        REQUIRE(tr.root->info == '|');
+        REQUIRE(tr.groups["name"]->info == '-');
         tr.synt("m-n-p|r+|t-(r|p)+");
         std::stringstream ss;
         tr.lcp(ss);

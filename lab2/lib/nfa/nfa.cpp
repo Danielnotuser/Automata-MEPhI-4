@@ -47,22 +47,24 @@ NFA NFA::repeat_nfa(Node* r, NFA& n1)
             res_cat = concatenation_nfa(res_cat, temp);
         }
     }
-
-    if (fir != sec && sec) // {?,!?}
+    if (sec) // {?,!?}
     {
-        NFA temp = recur(r->left);
-        NFA res_uni = recur(r->left);
-        for (int j = 1; j < sec - fir; j++)
+        if (fir == sec) res = std::move(res_cat); // {?,?}
+        else
         {
-            NFA t = recur(r->left);
-            temp = concatenation_nfa(temp, t);
-            res_uni = union_nfa(res_uni, temp);
+            NFA temp = recur(r->left);
+            NFA res_uni = recur(r->left);
+            for (int j = 1; j < sec - fir; j++)
+            {
+                NFA t = recur(r->left);
+                temp = concatenation_nfa(temp, t);
+                res_uni = union_nfa(res_uni, temp);
+            }
+            res_uni.start->epsilon.push_back(res_uni.end);
+            if (fir) res = concatenation_nfa(res_cat, res_uni); // {?, !?}
+            else res = std::move(res_uni); // {,!?}
         }
-        res_uni.start->epsilon.push_back(res_uni.end);
-        if (fir) res = concatenation_nfa(res_cat, res_uni); // {?, !?}
-        else res = std::move(res_uni); // {,!?}
     }
-    else if (fir == sec && sec) res = std::move(res_cat); // {?,?}
     else if (!fir) // {,}
     {
         res.start->epsilon.push_back(n1.start);
@@ -162,9 +164,12 @@ void rec_print(std::ofstream &f, StateNFA *v, int cnt)
 
 }
 
-void NFA::print(std::ofstream &f)
+void NFA::print(const std::string& name)
 {
+    std::ofstream f;
+    f.open(name);
     f << "digraph NFA {\nrankdir=\"LR\"\n";
     rec_print(f, start, 1);
     f << "}";
+    f.close();
 }
