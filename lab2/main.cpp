@@ -5,17 +5,16 @@ int main()
 {
     // "(<beb>n-p?-r-q)?-(<ded>y-t)?|a-h{,2}"
     // "(p|p+)|(p|p+)+"
-	std::string pat = "a?+-p|p?";
+	std::string pat = "a|b";
     std::cout << pat << std::endl;
-    STree tr;
     try {
+        STree tr;
         tr.synt(pat);
         tr.lcp(std::cout);
         NFA nf_auto(tr);
         //nf_auto.print("../viz/nfa.dot");
         DFA df_auto(nf_auto);
-        df_auto.print("../viz/dfa.dot");
-        std::string ch = "n";
+        std::string ch = "";
         std::cout << "DFA: Checking string \"" << ch << "\" . . . ";
         if (df_auto.check(ch)) std::cout << "This string is ok!" << std::endl;
         else std::cout << "This string is NOT ok" << std::endl;
@@ -24,7 +23,16 @@ int main()
         std::cout << "minDFA: Checking string \"" << ch << "\" . . . ";
         if (df_auto.check(ch)) std::cout << "This string is ok!" << std::endl;
         else std::cout << "This string is NOT ok" << std::endl;
-        //std::cout << "DFA -> RegEx = " << df_auto.k_path();
+        std::string k_p = df_auto.k_path();
+        STree tr2;
+        tr2.synt("a|b");
+        tr2.lcp(std::cout);
+        NFA nf2(tr2);
+        DFA df2(nf2);
+        df2.minimize();
+        df2.print("../viz/df2.dot");
+        DFA sum_df = df_auto + df2;
+        sum_df.print("../viz/sum_df.dot");
 
     }
 	catch (const std::exception &e) {

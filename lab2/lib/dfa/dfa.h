@@ -31,6 +31,7 @@ public:
     std::string k_path();
     int check(const std::string&);
     void print(const std::string&);
+    DFA operator+(DFA &);
 };
 
 #endif //REGEX_DFA_H

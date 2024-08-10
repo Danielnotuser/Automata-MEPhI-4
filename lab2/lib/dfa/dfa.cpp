@@ -237,45 +237,91 @@ std::map<int, State*> DFA::number(std::map<State*, int> &end_num)
 
 std::string DFA::inner_path(std::map<std::vector<int>, std::string> &expr, int i, int j, int k)
 {
-    if (auto e = expr.find(std::vector<int>{i, j, k}); e != expr.end())
+    std::vector<int> arg = {i, j, k};
+    if (auto e = expr.find(arg); e != expr.end())
         return e->second;
     std::string res = "";
     if (k == 0)
     {
+        std::string spec = "<>{,}()+-|?&";
         for (auto s = num[i]->edge.begin(); s != num[i]->edge.end(); s++)
         {
             if (s->second == num[j])
             {
-                res = s->first;
-                return res;
+                char s1 = s->first;
+                if (res.empty()) {if (spec.find(s1) != spec.npos) res = "&"; res += s1;}
+                else {res += "|"; if (spec.find(s1) != spec.npos) res = "&"; res += s1;}
             }
         }
+        expr[arg] = res;
         return res;
     }
-    std::string s1 = inner_path(expr, i, j, k - 1);
-    std::string s2 = inner_path(expr, j, j, k - 1);
-    if (!s1.empty() && !s2.empty())
-        res = "(" + s1 + ")" + "|" + "(" + s1 + ")-(" + s2 + ")";
-    else if (s1.empty() && !s2.empty())
-        res = "(" + s2 + ")" + "?+";
-    else if (!s1.empty())
-        res = s1;
+    // Rij(k) = Rij(k-1) | Rik(k-1) - (Rkk(k-1))?+ - Rjk(k-1)
+    std::string s1 = inner_path(expr, i, j, k - 1); // Rij (k-1)
+    std::string s2 = inner_path(expr, i, k, k - 1); // Rik (k-1)
+    std::string s3 = inner_path(expr, k, k, k - 1); // Rkk (k-1)
+    std::string s4 = inner_path(expr, k, j, k - 1); // Rkj (k-1)
+    if (i == k && j == k)
+    {
+        if (!s1.empty()) res = "(" + s1 + ")+";
+        expr[arg] = res;
+        return res;
+    }
+    else if (j == k)
+    {
+        if (!s1.empty()) res = s1;
+        if (!s3.empty()) res += "-(" + s3 + ")?+";
+        expr[arg] = res;
+        return res;
+    }
+    std::string sec_part = "";
+    if (!s1.empty())
+        res = "(" + s1 + ")";
+    if (!s2.empty())
+    {
+        sec_part += "(" + s2 + ")";
+    }
+    if (!s3.empty())
+    {
+        if (!s2.empty()) sec_part += "-(" + s3 + ")?+";
+        else sec_part += "(" + s3 + ")?+";
+    }
+    if (!s4.empty())
+    {
+        if (!s3.empty() || !s2.empty()) sec_part += "-(" + s4 + ")";
+        else sec_part += "(" + s4 + ")";
+    }
+    if (res != sec_part && !sec_part.empty() && !res.empty()) res = res + "|" + sec_part;
+    else if (res.empty()) res = sec_part;
 
+    expr[arg] = res;
     return res;
 }
 
 std::string DFA::k_path()
 {
     std::map<State*, int> end_num;
-    if (num.empty()) num = number(end_num);
+    num = number(end_num);
+
     std::string res;
     std::map<std::vector<int>, std::string> expr;
-    std::cout << end_num.size();
     for (size_t i = 0; i < end.size(); i++)
     {
-        if (i == 0) res = inner_path(expr, 1, end_num[end[i]], num.size());
-        else res += "|" + inner_path(expr, 1, end_num[end[i]], num.size());
+        std::string temp = inner_path(expr, 1, end_num[end[i]], num.size());
+        if (i == 0) res = temp;
+        else
+        {
+            if (res.empty()) res = temp;
+            else if (temp.empty()) res = "(" + res + ")?";
+            else res += "|" + temp;
+        }
     }
+    /*for (auto s: expr)
+    {
+        for (auto i : s.first)
+            std::cout << i << " ";
+        std::cout << "= " << s.second << std::endl;
+    }*/
     return res;
 }
 
@@ -306,4 +352,43 @@ void DFA::print(const std::string &name)
     dfa_print(f, st, start, num);
     f << "}";
     f.close();
+}
+
+DFA DFA::operator+(DFA& d)
+{
+    std::vector<State*> all_states;
+    all_states.insert(all_states.end(), not_end.begin(), not_end.end());
+    all_states.insert(all_states.end(), end.begin(), end.end());
+    std::vector<State*> d_states;
+    d_states.insert(d_states.end(), d.not_end.begin(), d.not_end.end());
+    d_states.insert(d_states.end(), d.end.begin(), d.end.end());
+    DFA res;
+    std::vector<State*> res_states;
+    std::vector<std::pair<State*, State*>> res_depend;
+    for (auto s1 : all_states)
+    {
+        for (auto s2 : d_states)
+        {
+            auto s = new State;
+            res_depend.emplace_back(s1, s2);
+            res_states.push_back(s);
+            if (std::find(end.begin(), end.end(), s1) != end.end() && std::find(d.end.begin(), d.end.end(), s2) != d.end.end())
+                res.end.push_back(s);
+            else res.not_end.push_back(s);
+            if (s1 == start && s2 == d.start) res.start = s;
+        }
+    }
+    for (size_t i = 0; i < res_states.size(); i++)
+    {
+        for (auto s : res_depend[i].first->edge)
+        {
+            if (auto f = res_depend[i].second->edge.find(s.first); f != res_depend[i].second->edge.end())
+            {
+                auto r_d = std::find(res_depend.begin(), res_depend.end(), std::make_pair(s.second, f->second));
+                if (r_d != res_depend.end())
+                    res_states[i]->edge[s.first] = r_d->second;
+            }
+        }
+    }
+    return res;
 }

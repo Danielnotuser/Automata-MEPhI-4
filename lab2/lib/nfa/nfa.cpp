@@ -72,7 +72,14 @@ NFA NFA::repeat_nfa(Node* r, NFA& n1)
         n1.end->epsilon.push_back(n1.start);
         res.start->epsilon.push_back(res.end);
     }
-    // {?,}
+    else // {?,}
+    {
+        NFA temp = recur(r->left);
+        temp = question_nfa(temp);
+        temp = plus_nfa(temp);
+        res = concatenation_nfa(res_cat, temp);
+    }
+
     return res;
 }
 NFA NFA::concatenation_nfa(NFA& n1, NFA& n2)
