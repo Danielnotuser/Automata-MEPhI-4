@@ -1,11 +1,20 @@
+#ifndef TYPE_H
+#define TYPE_H
+
 typedef enum { typeNum, typeVar, typeOpr } nodeEnum;
 
 typedef struct {
     int value;
 } numNodeType;
 
+typedef struct MyMap {
+    char **var_name;
+    int *var_value;
+    int var_num;
+} MyMap;
+
 typedef struct {
-    int i;
+    char *name;
 } varNodeType;
 
 typedef struct {
@@ -14,7 +23,7 @@ typedef struct {
     struct nodeTypeTag *op[1];
 } oprNodeType;
 
-typedef struct {
+typedef struct nodeTypeTag{
     nodeEnum type;
     union {
         numNodeType num;
@@ -23,4 +32,6 @@ typedef struct {
     };
 } nodeType;
 
-extern int sym[26];
+extern MyMap vars;
+
+#endif

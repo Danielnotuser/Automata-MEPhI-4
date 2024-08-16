@@ -6,26 +6,33 @@
 
 nodeType *opr(int oper, int num_ops, ...);
 nodeType *var(int i);
+void add_var(char *str);
 nodeType *num(int value);
 void freeNode(nodeType *p);
 int ex(nodeType *p);
 int yylex(void);
 
 void yyerror(const char *s);
-int sym[26];
+MyMap vars;
+int var_num = 0;
+extern FILE *yyin;
 %}
 
 %union {
-    int iValue;
-    char sIndex;
-    nodeType *nPtr;
+    int intVal;
+    char *strVal;
+    struct nodeTypeTag *nPtr;
 };
 
-%token <iValue> INTEGER
-%token <sIndex> VARIABLE
-%token WHILE IF PRINT
+%token <intVal> INTEGER
+%token <strVal> VARIABLE
+%token WHILE BREAK FINISH IF PRINT VALUE POINTER
 %nonassoc IFX
 %nonassoc ELSE
+
+%left GE LE NE EQ '>' '<'
+%left '+' '-'
+%left '*' '/' '%'
 %nonassoc UMINUS
 
 %type <nPtr> stmt expr stmt_list
@@ -41,15 +48,18 @@ function:
         | /* NULL */
         ;
 
+
 stmt:
-          ';'                               { $$ = opr(';', 2, NULL, NULL); }
-        | expr ';'                          { $$ = $1; }
-        | PRINT expr ';'                    { $$ = opr(PRINT, 1, $2); }
-        | VARIABLE '=' expr ';'             { $$ = opr('=', 2, num($1), $3); }
-        | WHILE '(' expr ')' stmt           { $$ = opr(WHILE, 2, $3, $5); }
-        | IF '(' expr ')' stmt %prec IFX    { $$ = opr(IF, 2, $3, $5); }
-        | IF '(' expr ')' stmt ELSE stmt    { $$ = opr(IF, 3, $3, $5, %7); }
-        | '{' stmt_list ')'                 { $$ = $2; }
+          ';'                                            { $$ = opr(';', 2, NULL, NULL); }
+        | expr ';'                                       { $$ = $1; }
+        | VALUE VARIABLE ';'                             { $$ = opr(VALUE, 2, var($2), NULL); }
+        | VALUE VARIABLE '=' expr ';'                    { $$ = opr(VALUE, 2, var($2), $4); }
+        | PRINT expr ';'                                 { $$ = opr(PRINT, 1, $2); }
+        | VARIABLE '=' expr ';'                          { $$ = opr('=', 2, var($1), $3); }
+        | WHILE '(' expr ')' stmt FINISH stmt            { $$ = opr(WHILE, 3, $3, $5, $7); }
+        | IF '(' expr ')' stmt %prec IFX                 { $$ = opr(IF, 2, $3, $5); }
+        | IF '(' expr ')' stmt ELSE stmt                 { $$ = opr(IF, 3, $3, $5, $7); }
+        | '{' stmt_list '}'                              { $$ = $2; }
         ;
 
 stmt_list:
@@ -59,12 +69,13 @@ stmt_list:
 
 expr:
           INTEGER                       { $$ = num($1); }
-        | VARIABLE                      { $$ = var($1); }
+        | VARIABLE                      { nodeType *p = check_var($2); if (!p) }
         | '-' expr %prec UMINUS         { $$ = opr(UMINUS, 1, $2); }
         | expr '+' expr                 { $$ = opr('+', 2, $1, $3); }
         | expr '-' expr                 { $$ = opr('-', 2, $1, $3); }
         | expr '*' expr                 { $$ = opr('*', 2, $1, $3); }
         | expr '/' expr                 { $$ = opr('/', 2, $1, $3); }
+        | expr '/' expr                 { $$ = opr('%', 2, $1, $3); }
         | expr '<' expr                 { $$ = opr('<', 2, $1, $3); }
         | expr '>' expr                 { $$ = opr('>', 2, $1, $3); }
         | expr GE expr                  { $$ = opr(GE, 2, $1, $3); }
@@ -72,6 +83,7 @@ expr:
         | expr NE expr                  { $$ = opr(NE, 2, $1, $3); }
         | expr EQ expr                  { $$ = opr(EQ, 2, $1, $3); }
         | '(' expr ')'                  { $$ = $2; }
+        ;
 
 %%
 
@@ -91,7 +103,7 @@ nodeType *num(int value) {
     return p;
 }
 
-nodeType *var(int i) {
+nodeType *var(char *str) {
     nodeType *p;
     size_t nodeSize;
 
@@ -100,10 +112,13 @@ nodeType *var(int i) {
         yyerror("Out of memory.");
 
     p->type = typeVar;
-    p->var.i = i;
+    p->var.name = str;
 
     return p;
 }
+
+
+
 
 nodeType *opr(int oper, int num_ops, ...) {
     va_list ap;
@@ -124,6 +139,7 @@ nodeType *opr(int oper, int num_ops, ...) {
         p->opr.op[i] = va_arg(ap, nodeType*);
     va_end(ap);
     return p;
+}
 
 void freeNode(nodeType *p) {
     int i;
@@ -140,7 +156,9 @@ void yyerror(const char *s) {
     fprintf(stderr, "Error! %s\n", s);
 }
 
-int main(void) {
+int main(int argc, const char *argv[]) {
+    if (argc >= 2) yyin = fopen(argv[1], "r");
+    if (!yyin) yyin = stdin;
     yyparse();
     return 0;
 }

@@ -1,5 +1,5 @@
 CC = gcc
-CGLAGS = -o
+CFLAGS = -o
 LEX = flex
 YACC = bison
 YFLAGS = -d -y
@@ -14,9 +14,13 @@ LOUT = lex.yy.c
 
 all : $(BIN)
 	./$(BIN)
+
 $(BIN) : $(LOUT) $(YOUT) $(NFILE)
 	$(CC) $^ $(CFLAGS) $@
+
 $(LOUT) : $(LFILE)
 	$(LEX) $^
+
 $(YOUT) : $(YFILE)
 	$(YACC) $(YFLAGS) $^
+

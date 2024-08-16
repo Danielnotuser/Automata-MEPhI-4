@@ -1,3 +1,4 @@
+%option case-insensitive
 %{
 #include <stdlib.h>
 #include "type.h"
@@ -6,22 +7,22 @@ void yyerror(const char *);
 %}
 
 %%
-[a-z]       {
-                yylval.sIndex = *yytext - 'a';
-                return VARIABLE;
-             }
+[a-z]+[0-9]*    {
+                    yylval.strVal = yytext;
+                    return VARIABLE;
+                }
 
 0            {
-                 yylval.iValue = atoi(yytext);
+                 yylval.intVal = atoi(yytext);
                  return INTEGER;
              }
 
 [1-9][0-9]*  {
-                  yylval.iValue = atoi(yytext);
+                  yylval.intVal = atoi(yytext);
                   return INTEGER;
               }
 
-[-()<>=+*/;{}.]  {
+[-()<>=+*/%;{}]  {
                     return *yytext;
                  }
 
@@ -29,7 +30,11 @@ void yyerror(const char *);
 "<="               return LE;
 "!="               return NE;
 "=="               return EQ;
+"value"            return VALUE;
+"pointer"          return POINTER;
 "while"            return WHILE;
+"finish"           return FINISH;
+"break"            return BREAK;
 "if"               return IF;
 "else"             return ELSE;
 "print"            return PRINT;
@@ -38,6 +43,6 @@ void yyerror(const char *);
 
 .                  yyerror("Unknown character");
 %%
-int yywrap(void) {return 1}
+int yywrap(void) {return 1;}
 
 

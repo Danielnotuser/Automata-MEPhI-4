@@ -4,3 +4,6 @@ cmake-build-debug/
 *.txt
 *.png
 viz/
+y.tab.*
+lex.yy.c
+lab
