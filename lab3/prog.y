@@ -5,10 +5,10 @@
 #include "type.h"
 
 nodeType *opr(int oper, int num_ops, ...);
-nodeType *var(int i);
-void add_var(char *str);
+nodeType *var(char *str);
 nodeType *num(int value);
 void freeNode(nodeType *p);
+void freeMap();
 int ex(nodeType *p);
 int yylex(void);
 
@@ -26,7 +26,8 @@ extern FILE *yyin;
 
 %token <intVal> INTEGER
 %token <strVal> VARIABLE
-%token WHILE BREAK FINISH IF PRINT VALUE POINTER
+%token WHILE BREAK FINISH IF PRINT VALUE POINTER ZERO NOTZERO
+%nonassoc WHILEX
 %nonassoc IFX
 %nonassoc ELSE
 
@@ -40,11 +41,12 @@ extern FILE *yyin;
 %%
 
 program:
-        function    { exit(0); }
+        function      { freeMap(); exit(0); }
         ;
 
 function:
-        function stmt   { ex($2); freeNode($2); }
+        function stmt     { ex($2); freeNode($2); }
+        | function error  { printf("Error occured at line %d\n", @2.first_line); yyerrok; }
         | /* NULL */
         ;
 
@@ -52,13 +54,17 @@ function:
 stmt:
           ';'                                            { $$ = opr(';', 2, NULL, NULL); }
         | expr ';'                                       { $$ = $1; }
+        | BREAK ';'                                      { $$ = opr(BREAK, 0); }
         | VALUE VARIABLE ';'                             { $$ = opr(VALUE, 2, var($2), NULL); }
         | VALUE VARIABLE '=' expr ';'                    { $$ = opr(VALUE, 2, var($2), $4); }
         | PRINT expr ';'                                 { $$ = opr(PRINT, 1, $2); }
         | VARIABLE '=' expr ';'                          { $$ = opr('=', 2, var($1), $3); }
+        | WHILE '(' expr ')' stmt %prec WHILEX           { $$ = opr(WHILE, 2, $3, $5); }
         | WHILE '(' expr ')' stmt FINISH stmt            { $$ = opr(WHILE, 3, $3, $5, $7); }
         | IF '(' expr ')' stmt %prec IFX                 { $$ = opr(IF, 2, $3, $5); }
         | IF '(' expr ')' stmt ELSE stmt                 { $$ = opr(IF, 3, $3, $5, $7); }
+        | ZERO '(' expr ')' stmt                         { $$ = opr(ZERO, 2, $3, $5); }
+        | NOTZERO '(' expr ')' stmt                      { $$ = opr(NOTZERO, 2, $3, $5); }
         | '{' stmt_list '}'                              { $$ = $2; }
         ;
 
@@ -69,13 +75,13 @@ stmt_list:
 
 expr:
           INTEGER                       { $$ = num($1); }
-        | VARIABLE                      { nodeType *p = check_var($2); if (!p) }
+        | VARIABLE                      { $$ = var($1); }
         | '-' expr %prec UMINUS         { $$ = opr(UMINUS, 1, $2); }
         | expr '+' expr                 { $$ = opr('+', 2, $1, $3); }
         | expr '-' expr                 { $$ = opr('-', 2, $1, $3); }
         | expr '*' expr                 { $$ = opr('*', 2, $1, $3); }
         | expr '/' expr                 { $$ = opr('/', 2, $1, $3); }
-        | expr '/' expr                 { $$ = opr('%', 2, $1, $3); }
+        | expr '%' expr                 { $$ = opr('%', 2, $1, $3); }
         | expr '<' expr                 { $$ = opr('<', 2, $1, $3); }
         | expr '>' expr                 { $$ = opr('>', 2, $1, $3); }
         | expr GE expr                  { $$ = opr(GE, 2, $1, $3); }
@@ -149,7 +155,16 @@ void freeNode(nodeType *p) {
         for (i = 0; i < p->opr.num_ops; i++)
             freeNode(p->opr.op[i]);
     }
+    else if (p->type == typeVar)
+        free(p->var.name);
     free(p);
+}
+
+void freeMap() {
+    free(vars.var_value);
+    for (int i = 0; i < vars.var_num; i++)
+        free(vars.var_name[i]);
+    free(vars.var_name);
 }
 
 void yyerror(const char *s) {

@@ -1,5 +1,7 @@
+MEMCHECK = valgrind --leak-check=full
+CODE = code.txt
 CC = gcc
-CFLAGS = -o
+CFLAGS = -g -o
 LEX = flex
 YACC = bison
 YFLAGS = -d -y
@@ -13,7 +15,7 @@ LOUT = lex.yy.c
 .PHONY : all
 
 all : $(BIN)
-	./$(BIN)
+	$(MEMCHECK) ./$(BIN) $(CODE)
 
 $(BIN) : $(LOUT) $(YOUT) $(NFILE)
 	$(CC) $^ $(CFLAGS) $@
