@@ -8,7 +8,7 @@ YFLAGS = -d -y
 BIN = lab
 YFILE = prog.y
 LFILE = prog.l
-NFILE = node.cpp
+SRC = node.cpp variable.cpp operand.cpp
 YOUT = y.tab.c y.tab.h
 LOUT = lex.yy.c
 
@@ -17,7 +17,7 @@ LOUT = lex.yy.c
 all : $(BIN)
 	$(MEMCHECK) ./$(BIN) $(CODE)
 
-$(BIN) : $(LOUT) $(YOUT) $(NFILE)
+$(BIN) : $(LOUT) $(YOUT) $(SRC)
 	$(CC) $^ $(CFLAGS) $@
 
 $(LOUT) : $(LFILE)

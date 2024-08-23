@@ -1,56 +1,61 @@
 #ifndef TYPE_H
 #define TYPE_H
 
-typedef enum { typeNum, typeVar, typeOpr } nodeEnum;
+#include <any>
+#include <string>
 
-typedef struct {
-    int value;
-} numNodeType;
+class Node {
+    public:
+        int type;
 
-typedef struct {
-    char *name;
-} varNodeType;
+        Node() = default;
+        virtual std::any ex() = 0;
+        int get_type() { return type; };
+        ~Node() = default;
+};
 
-typedef struct {
-    int oper;
-    int num_ops;
-    struct nodeTypeTag *op[1];
-} oprNodeType;
+class Operation : public Node {
+    private:
+        int id;
+        int nops;
+        Node **op;
+    public:
+        Operation(int id, int nops, ...);
+        std::any ex() override;
+        ~Operation() = default;
 
-typedef struct nodeTypeTag{
-    nodeEnum type;
-    union {
-        numNodeType num;
-        varNodeType var;
-        oprNodeType opr;
-    };
-} nodeType;
+};
 
-typedef struct Elem {
-    int type;
-    void *var;
-} Elem;
+class Number : public Node {
+    private:
+        int num;
+    public:
+        Number(int num) : num(num) { type = -2; };
+        std::any ex() override { return num; };
+        ~Number() = default;
+};
 
-typedef struct VarMap {
-    char **var_names;
-    Elem *var_info;
-    int var_num;
-} VarMap;
+class Variable : public Node {
+    private:
+        int size;
+        int exp;
+        std::string name;
+        std::any var;
+    public:
+        Variable() : size(0) {};
+        Variable(int var_type, std::string name, std::any value);
+        explicit Variable(const Variable&);
 
-typedef struct Func {
-    int ret_type;
-    int *arg_types;
-    int arg_num;
-    VarMap vars;
-    nodeType *tree;
-} Func;
+        std::any ex() override { return var; };
+        bool empty() { return !var.has_value(); }
 
-typedef struct FuncMap {
-    char **names;
-    Func *func;
-    int func_num;
-} FuncMap;
+        Variable &set_var(std::any);
 
-extern VarMap global_vars;
+        ~Variable() = default;
+
+};
+
+
+std::any execute(std::string, Node *);
 
 #endif
