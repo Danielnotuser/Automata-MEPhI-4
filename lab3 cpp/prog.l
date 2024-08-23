@@ -1,8 +1,10 @@
 %option case-insensitive
+%option noyywrap
+%option c++
 %option yylineno
 %{
-#include <stdlib.h>
-#include <string.h>
+#include <iostream>
+#include <string>
 #include "type.h"
 #include "y.tab.h"
 void yyerror(const char *);
@@ -22,12 +24,13 @@ void yyerror(const char *);
 "if"               return IF;
 "else"             return ELSE;
 "print"            return PRINT;
+"main"
 
-[a-z]+[0-9_]*    {
-                    yylloc.last_line = yylloc.first_line = yylineno;
-                    yylval.strVal = strdup(yytext);
-                    return VARIABLE;
-                }
+[a-z]+[0-9_a-z]*     {
+                          yylloc.last_line = yylloc.first_line = yylineno;
+                          yylval.strVal = strdup(yytext);
+                          return NAME;
+                     }
 
 0            {
                  yylloc.last_line = yylloc.first_line = yylineno;
@@ -41,7 +44,7 @@ void yyerror(const char *);
                   return INTEGER;
               }
 
-[-()<>=+*/%;{}]  {
+[-\(\)<>=+\*/%;{},\[\]]  {
                     return *yytext;
                  }
 
@@ -56,6 +59,5 @@ void yyerror(const char *);
 
 .                {yylloc.last_line = yylloc.first_line = yylineno; yyerror("Unknown character");}
 %%
-int yywrap(void) {return 1;}
 
 

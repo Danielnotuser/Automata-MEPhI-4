@@ -7,12 +7,6 @@ typedef struct {
     int value;
 } numNodeType;
 
-typedef struct MyMap {
-    char **var_name;
-    int *var_value;
-    int var_num;
-} MyMap;
-
 typedef struct {
     char *name;
 } varNodeType;
@@ -32,6 +26,31 @@ typedef struct nodeTypeTag{
     };
 } nodeType;
 
-extern MyMap vars;
+typedef struct Elem {
+    int type;
+    void *var;
+} Elem;
+
+typedef struct VarMap {
+    char **var_names;
+    Elem *var_info;
+    int var_num;
+} VarMap;
+
+typedef struct Func {
+    int ret_type;
+    int *arg_types;
+    int arg_num;
+    VarMap vars;
+    nodeType *tree;
+} Func;
+
+typedef struct FuncMap {
+    char **names;
+    Func *func;
+    int func_num;
+} FuncMap;
+
+extern VarMap global_vars;
 
 #endif

@@ -13,8 +13,7 @@ int ex(nodeType *p);
 int yylex(void);
 
 void yyerror(const char *s);
-MyMap vars;
-int var_num = 0;
+VarMap global_vars
 extern FILE *yyin;
 %}
 
@@ -22,11 +21,11 @@ extern FILE *yyin;
     int intVal;
     char *strVal;
     struct nodeTypeTag *nPtr;
-};
+}
 
 %token <intVal> INTEGER
 %token <strVal> VARIABLE
-%token WHILE BREAK FINISH IF PRINT VALUE POINTER ZERO NOTZERO
+%token WHILE BREAK FINISH IF PRINT VALUE POINTER ZERO NOTZERO ARRAYOF
 %nonassoc WHILEX
 %nonassoc IFX
 %nonassoc ELSE
@@ -35,8 +34,10 @@ extern FILE *yyin;
 %left '+' '-'
 %left '*' '/' '%'
 %nonassoc UMINUS
+%nonassoc USTAR
 
 %type <nPtr> stmt expr stmt_list
+%type <intVal> type
 
 %%
 
@@ -50,15 +51,42 @@ function:
         | /* NULL */
         ;
 
+type:
+        VALUE                                       { $$ = 0; }
+        | POINTER VALUE                             { $$ = 1; }
+        | POINTER CONST VALUE                       { $$ = 2; }
+        | ARRAYOF VALUE                             { $$ = 3; }
+        | ARRAYOF CONST VALUE                       { $$ = 4; }
+        | ARRAYOF POINTER VALUE                     { $$ = 5; }
+        | ARRAYOF CONST POINTER VALUE               { $$ = 6; }
+        | ARRAYOF POINTER CONST VALUE               { $$ = 7; }
+        | ARRAYOF ARRAYOF VALUE                     { $$ = 8; }
+        | ARRAYOF CONST ARRAYOF VALUE               { $$ = 9; }
+        | ARRAYOF ARRAOF CONST VALUE                { $$ = 10; }
+        | ARRAYOF ARRAYOF POINTER VALUE             { $$ = 11; }
+        | ARRAYOF ARRAYOF CONST POINTER VALUE       { $$ = 12; }
+        | ARRAYOF ARRAYOF POINTER CONST VALUE       { $$ = 13; }
+        ;
+const_type:
+        | CONST VALUE                               { $$ = 21; }
+        | CONST POINTER VALUE                       { $$ = 14; }
+        | CONST ARRAYOF VALUE                       { $$ = 15; }
+        | CONST ARRAYOF POINTER VALUE               { $$ = 16; }
+        | CONST ARRAYOF POINTER CONST VALUE         { $$ = 17; }
+        | CONST ARRAYOF CONST POINTER VALUE         { $$ = 18; }
+        | CONST ARRAYOF ARRAYOF VALUE               { $$ = 19; }
+        | CONST ARRAYOF CONST ARRAYOF VALUE         { $$ = 20; }
+        ;
 
 stmt:
           ';'                                            { $$ = opr(';', 2, NULL, NULL); }
         | expr ';'                                       { $$ = $1; }
         | BREAK ';'                                      { $$ = opr(BREAK, 0); }
-        | VALUE VARIABLE ';'                             { $$ = opr(VALUE, 2, var($2), NULL); }
-        | VALUE VARIABLE '=' expr ';'                    { $$ = opr(VALUE, 2, var($2), $4); }
-        | PRINT expr ';'                                 { $$ = opr(PRINT, 1, $2); }
+        | type VARIABLE ';'                              { $$ = opr(VALUE, 3, num($1), var($2), NULL); }
+        | type VARIABLE '=' expr ';'                     { $$ = opr(VALUE, 3, num($1), var($2), $4); }
+        | const_type VARIABLE '=' expr ';'               { $$ = opr(VALUE, 3, num($1), var($2), $4); }
         | VARIABLE '=' expr ';'                          { $$ = opr('=', 2, var($1), $3); }
+        | PRINT expr ';'                                 { $$ = opr(PRINT, 1, $2); }
         | WHILE '(' expr ')' stmt %prec WHILEX           { $$ = opr(WHILE, 2, $3, $5); }
         | WHILE '(' expr ')' stmt FINISH stmt            { $$ = opr(WHILE, 3, $3, $5, $7); }
         | IF '(' expr ')' stmt %prec IFX                 { $$ = opr(IF, 2, $3, $5); }

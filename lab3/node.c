@@ -5,13 +5,16 @@
 #include "type.h"
 #include "y.tab.h"
 
-void add_var(char *str, int val)
+void add_var(int type, char *str, int val)
 {
-    vars.var_num++;
-    vars.var_value = (int*) realloc(vars.var_value, vars.var_num * sizeof(int));
-    vars.var_name = (char**) realloc(vars.var_name, vars.var_num * sizeof(char*));
-    vars.var_name[vars.var_num-1] = strdup(str);
-    vars.var_value[vars.var_num-1] = val;
+    global_vars.var_num++;
+    global_vars.var_info = (Elem*) realloc(global_vars.var_info, global_vars.var_num * sizeof(Elem));
+    global_vars.var_names = (char**) realloc(global_vars.var_names, global_vars.var_num * sizeof(char*));
+    global_vars.var_names[global_vars.var_num - 1] = strdup(str);
+    Elem e;
+    e.type = 0;
+    e.var = (void*) &val;
+    global_vars.var_info[global_vars.var_num - 1] = e;
 }
 
 char *lower_case(const char *str)
@@ -22,13 +25,14 @@ char *lower_case(const char *str)
     return res;
 }
 
-int find_var(const char *str, int *ind)
+int find_var(const char *str, int *ind, int *type)
 {
     char *check = lower_case(str);
-    for (int i = 0; i < vars.var_num; i++) {
-        char *var_str = lower_case(vars.var_name[i]);
+    for (int i = 0; i < global_vars.var_num; i++) {
+        char *var_str = lower_case(global_vars.var_names[i]);
         if (!strcmp(var_str, check)) {
             *ind = i;
+            *type = global_vars.var_info[i].type;
             free(var_str);
             free(check);
             return 1;
@@ -46,11 +50,11 @@ int ex(nodeType *p)
     switch (p->type)
     {
         case typeNum: return p->num.value;
-        case typeVar: int ind; if (find_var(p->var.name, &ind)) return vars.var_value[ind]; else fprintf(stderr, "Error! The variable is not initialized.\n"); return 0;
+        case typeVar: int ind, type; if (find_var(p->var.name, &ind, &type)) return vars.var_value[ind]; else fprintf(stderr, "Error! The variable is not initialized.\n"); return 0;
         case typeOpr:
             switch (p->opr.oper)
             {
-                case VALUE:     int ind1; if (!find_var(p->opr.op[0]->var.name, &ind1)) add_var(p->opr.op[0]->var.name, ex(p->opr.op[1])); else fprintf(stderr, "Error! The variable has already been initialized.\n"); return 0;
+                case VALUE:     int ind1; if (!find_var(p->opr.op[1]->var.name, &ind1)) add_var(p->opr.op[0], p->opr.op[1]->var.name, ex(p->opr.op[1])); else fprintf(stderr, "Error! The variable has already been initialized.\n"); return 0;
                 case WHILE:     while(ex(p->opr.op[0])) ex(p->opr.op[1]); if (p->opr.num_ops > 2) ex(p->opr.op[2]); return 0;
                 case IF:        if (ex(p->opr.op[0])) ex(p->opr.op[1]);
                                 else if(p->opr.num_ops > 2) ex(p->opr.op[2]); return 0;
