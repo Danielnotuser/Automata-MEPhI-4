@@ -30,6 +30,7 @@ class Number : public Node {
     private:
         int num;
     public:
+        Number() = default;
         Number(int num) : num(num) { type = -2; };
         std::any ex() override { return num; };
         ~Number() = default;

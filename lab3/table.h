@@ -36,7 +36,7 @@ class Function {
 
         Function() = default;
         Function(int ret_type, std::string name, std::map<std::string, Variable> args) : ret_type(ret_type), name(name), args(args) {};
-        int find_var(std::string var_name, Variable &res) {return var_tab.find(var_name, res);};
+        int find_var(std::string var_name, Variable &res) {return var_tab.find_var(var_name, res);};
 };
 
 class FunctionTable {

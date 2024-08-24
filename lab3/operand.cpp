@@ -56,6 +56,7 @@ std::any Operand::binary(int op_type, const Operand &op2) const
         std::cerr << "Error! Type with " << type << " id does not support operation with it.";
         return 0;
     }
+    return 0;
 }
 
 std::any Operand::operator+(Operand & op)
@@ -105,18 +106,20 @@ Operand::Operand(Node* p)
     }
     else if (p->type == -2)
     {
-        Number *n = static_cast<Number*>(op[i]);
+        Number *n = static_cast<Number*>(p);
         type = 0;
         val = n->ex();
     }
     else
     {
-        Operation *o = static_cast<Operation*>(op[i]);
+        Operation *o = static_cast<Operation*>(p);
         val = o->ex();
+        type = 0;
         if (val.type() == typeid(int))
             type = 0;
         else if (val.type() == typeid(int*))
             type = 1;
+
     }
 }
 

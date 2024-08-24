@@ -12,69 +12,61 @@ Variable::Variable(int type, std::string name, std::any value) : name(name)
     {
         switch (type) {
             case 0:
-                int c0;
+                { int c0;
                 if (value.has_value()) c0 = std::any_cast<int>(value);
                 var = c0;
-                break;
+                break; }
             case 1:
-                int *c1 = new int;
-                if (value.has_value()) c1 = std::any_cast<int*>(value);
-                var = c1;
-                break;
+                {var = new int;
+                if (value.has_value()) var = std::any_cast<int*>(value);
+                break;}
             case 2:
-                if (value.has_value()) exp = std::any_cast<int>(value);
-                std::vector<int> c2(exp);
-                var = c2;
-                break;
+                {if (value.has_value()) exp = std::any_cast<int>(value);
+                var = std::vector<int>(exp);
+                break;}
             case 3:
-                if (value.has_value()) exp = std::any_cast<int>(value);
-                std::vector<int *> c3(exp);
-                var = c3;
-                break;
+                {if (value.has_value()) exp = std::any_cast<int>(value);
+                var = std::vector<int *>(exp);
+                break;}
             case 4:
-                if (value.has_value()) exp = std::any_cast<int>(value);
-                std::vector<std::vector<int>> c4(exp, std::vector<int>(exp));
-                var = c4;
-                break;
+                {if (value.has_value()) exp = std::any_cast<int>(value);
+                var = std::vector<std::vector<int>>(exp, std::vector<int>(exp));
+                break;}
             case 5:
-                if (value.has_value()) exp = std::any_cast<int>(value);
-                std::vector<std::vector<int *>> c6(exp, std::vector<int *>(exp));
-                var = c6;
-                break;
+                {if (value.has_value()) exp = std::any_cast<int>(value);
+                var = std::vector<std::vector<int *>>(exp, std::vector<int *>(exp));
+                break;}
             default:
                 throw std::runtime_error("Default initialization of an object of const type.");
         }
     }
     else if (value.has_value())
     {
-        switch (var_type) {
+        switch (type) {
             case 6:
-                const int c7 = std::any_cast<int>(value);
-                var = c7;
+                var = std::any_cast<const int>(value);;
                 break;
             case 7:
-                int *const c8 = std::any_cast<int*>(value);
-                var = c8;
+                var = std::any_cast<int*const>(value);;
                 break;
             case 8:
-                const int* c9 = std::any_cast<int*>(value);
-                var = c9;
+                var = std::any_cast<const int*>(value);
                 break;
             case 9:
-                exp = std::any_cast<int>(value);
+                {exp = std::any_cast<int>(value);
                 const std::vector<int> c10(exp);
                 var = c10;
-                break;
+                break;}
             case 10:
-                exp = std::any_cast<int>(value);
+                {exp = std::any_cast<int>(value);
                 const std::vector<int*> c11(exp);
                 var = c11;
-                break;
+                break;}
             case 11:
-                exp = std::any_cast<int>(value);
+                {exp = std::any_cast<int>(value);
                 const std::vector<std::vector<int>> c12(exp, std::vector<int>(exp));
                 var = c12;
-                break;
+                break;}
         }
     }
     else throw std::runtime_error("Invalid const variable initialization.");
