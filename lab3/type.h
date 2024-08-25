@@ -9,6 +9,7 @@ class Node {
         int type;
 
         Node() = default;
+        Node(int type) : type(type) {};
         virtual std::any ex() = 0;
         int get_type() { return type; };
         ~Node() = default;
@@ -31,7 +32,7 @@ class Number : public Node {
         int num;
     public:
         Number() = default;
-        Number(int num) : num(num) { type = -2; };
+        Number(int num) : Node(-2), num(num) {};
         std::any ex() override { return num; };
         ~Number() = default;
 };
@@ -44,12 +45,14 @@ class Variable : public Node {
         std::any var;
     public:
         Variable() : size(0) {};
-        Variable(int var_type, std::string name, std::any value);
+        Variable(int var_type, std::string name) : name(name) {type = var_type;};
+        void init(std::any a = std::any());
         explicit Variable(const Variable&);
 
         std::any ex() override { return var; };
         bool empty() { return !var.has_value(); }
 
+        std::string get_name() {return name;};
         Variable &set_var(std::any);
 
         ~Variable() = default;

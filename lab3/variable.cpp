@@ -1,11 +1,9 @@
 #include <iostream>
 #include <vector>
-#include <cstdarg>
 #include "type.h"
 
-Variable::Variable(int type, std::string name, std::any value) : name(name)
+void Variable::init(std::any value)
 {
-    this->type = type;
     size = 1;
     exp = 4;
     if (type >= 0 && type <= 6)

@@ -2,15 +2,8 @@
 #include <cstdarg>
 #include <vector>
 #include "type.h"
-#include "y.tab.h"
 #include "operand.h"
-
-std::any execute(std::string f_name, Node *p)
-{
-    if (p->type == -2) { Number *n = static_cast<Number*>(p); return n->ex(); }
-    else if (p->type == -1) { Operation *op = static_cast<Operation*>(p); return op->ex(); }
-    else { Variable *v = static_cast<Variable*>(p); return v->ex(); }
-}
+#include "y.tab.h"
 
 Operation::Operation(int id, int nops, ...) : id(id), nops(nops)
 {
@@ -18,7 +11,6 @@ Operation::Operation(int id, int nops, ...) : id(id), nops(nops)
     va_list ap;
     va_start(ap, nops);
     op = new Node*[nops];
-    if (!op) throw std::runtime_error("Out of memory.");
     for (int i = 0; i < nops; i++)
         op[i] = va_arg(ap, Node*);
     va_end(ap);
@@ -33,7 +25,6 @@ std::any deref(Node *p)
         case 8: { int *const c = std::any_cast<int*const>(static_cast<Variable*>(p)->ex()); return *c; }
         default: std::cerr << "Error! Dereferencing a non-pointer variable."; return 0;
     }
-    return 0;
 }
 
 std::any address(Node *p)
@@ -81,29 +72,30 @@ std::any Operation::ex()
     Operand inner;
     switch (id)
     {
-        case yy::parser::token::WHILE:          while(Operand(op[0])) inner.refresh(op[1]); if (nops > 2) inner.refresh(op[2]); return 0;
-        case yy::parser::token::IF:             if (Operand(op[0])) inner.refresh(op[1]); else if (nops > 2) inner.refresh(op[2]); return 0;
-        case yy::parser::token::ZERO:           if (Operand(op[0]) == 0) inner.refresh(op[1]); return 0;
-        case yy::parser::token::NOTZERO:        if (Operand(op[0]) != 0) inner.refresh(op[1]); return 0;
-        case yy::parser::token::PRINT:          inner.refresh(op[0]); inner.print("Output: "); return 0;
-        case yy::parser::token::SEMI:           inner.refresh(op[0]); inner.refresh(op[1]); return 0;
-        case yy::parser::token::ASSIGN:         if (op[0]->type >= 0) {Variable *v = std::any_cast<Variable*>(op[0]); v->set_var(Operand(op[1]).get_val());}
+        case VALUE:          {Variable *v = static_cast<Variable*>(op[0]); if (nops > 1) {inner.refresh(op[1]); v->init(inner.get_val());} else v->init(); return 0;}
+        case WHILE:          while(Operand(op[0])) inner.refresh(op[1]); if (nops > 2) inner.refresh(op[2]); return 0;
+        case IF:             if (Operand(op[0])) inner.refresh(op[1]); else if (nops > 2) inner.refresh(op[2]); return 0;
+        case ZERO:           if (Operand(op[0]) == 0) inner.refresh(op[1]); return 0;
+        case NOTZERO:        if (Operand(op[0]) != 0) inner.refresh(op[1]); return 0;
+        case PRINT:          inner.refresh(op[0]); inner.print("Output: "); return 0;
+        case SEMI:           inner.refresh(op[0]); inner.refresh(op[1]); return 0;
+        case ASSIGN:         if (op[0]->type >= 0) {Variable *v = std::any_cast<Variable*>(op[0]); v->set_var(Operand(op[1]).get_val());}
                                     else std::cerr << "Error! Um.. lvalue of assignment is not a variable..";
-        case yy::parser::token::DEREF:          return deref(op[0]);
-        case yy::parser::token::ADDR:           return address(op[0]);
-        case yy::parser::token::LSQUARE:        return arr_el_ref(op[0], op[1]);
-        case yy::parser::token::UMINUS:         return Operand(0, 0)  - Operand(op[0]);
-        case yy::parser::token::PLUS:           return Operand(op[0]) + Operand(op[1]);
-        case yy::parser::token::MINUS:          return Operand(op[0]) - Operand(op[1]);
-        case yy::parser::token::STAR:           return Operand(op[0]) * Operand(op[1]);
-        case yy::parser::token::SLASH:          return Operand(op[0]) / Operand(op[1]);
-        case yy::parser::token::PERC:           return Operand(op[0]) + Operand(op[1]);
-        case yy::parser::token::LESS:           return Operand(op[0]) < Operand(op[1]);
-        case yy::parser::token::GREATER:        return Operand(op[0]) > Operand(op[1]);
-        case yy::parser::token::GE:             return Operand(op[0]) >= Operand(op[1]);
-        case yy::parser::token::LE:             return Operand(op[0]) <= Operand(op[1]);
-        case yy::parser::token::NE:             return Operand(op[0]) != Operand(op[1]);
-        case yy::parser::token::EQ:             return Operand(op[0]) == Operand(op[1]);
+        case DEREF:          return deref(op[0]);
+        case ADDR:           return address(op[0]);
+        case LSQUARE:        return arr_el_ref(op[0], op[1]);
+        case UMINUS:         return Operand(0, 0)  - Operand(op[0]);
+        case PLUS:           return Operand(op[0]) + Operand(op[1]);
+        case MINUS:          return Operand(op[0]) - Operand(op[1]);
+        case STAR:           return Operand(op[0]) * Operand(op[1]);
+        case SLASH:          return Operand(op[0]) / Operand(op[1]);
+        case PERC:           return Operand(op[0]) + Operand(op[1]);
+        case LESS:           return Operand(op[0]) < Operand(op[1]);
+        case GREATER:        return Operand(op[0]) > Operand(op[1]);
+        case GE:             return Operand(op[0]) >= Operand(op[1]);
+        case LE:             return Operand(op[0]) <= Operand(op[1]);
+        case NE:             return Operand(op[0]) != Operand(op[1]);
+        case EQ:             return Operand(op[0]) == Operand(op[1]);
     }
     return 0;
 }

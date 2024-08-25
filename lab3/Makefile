@@ -4,13 +4,13 @@ CC = g++
 CFLAGS = -g -std=c++20 -o
 LEX = flex
 YACC = bison
-YFLAGS = -d -y -Wno-yacc
+YFLAGS = -d -y -v -Wcounterexamples -Wno-yacc
 BIN = lab
-YFILE = prog.yy
+YFILE = prog.y
 LFILE = prog.l
-SRC = node.cpp variable.cpp operand.cpp
+SRC = operation.cpp variable.cpp operand.cpp function.cpp
 YOUT = y.tab.c y.tab.h
-LOUT = lex.yy.cc
+LOUT = lex.yy.c
 
 .PHONY : all
 
@@ -35,5 +35,5 @@ $(YOUT) : $(YFILE)
 	$(YACC) $(YFLAGS) $^
 
 clean:
-	rm lex.* y.tab* location.hh lab
+	rm $(LOUT) $(YOUT) $(BIN)
 
