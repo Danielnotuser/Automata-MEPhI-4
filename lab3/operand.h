@@ -19,13 +19,13 @@ public:
     Operand &refresh(Node *p);
     void print(const char *prompt);
 
-    std::any operator+(Operand &);
-    std::any operator-(Operand &);
-    std::any operator*(Operand &);
-    std::any operator/(Operand &);
-    std::any operator%(Operand &);
-    operator bool() const;
-    bool operator<=>(Operand&) const;
+    std::any operator+(const Operand &);
+    std::any operator-(const Operand &);
+    std::any operator*(const Operand &);
+    std::any operator/(const Operand &);
+    std::any operator%(const Operand &);
+    std::strong_ordering operator<=>(const Operand &op) const;
+    bool operator==(const Operand &) const;
 
 };
 

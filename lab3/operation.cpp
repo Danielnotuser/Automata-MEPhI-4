@@ -72,11 +72,12 @@ std::any Operation::ex()
     Operand inner;
     switch (id)
     {
-        case VALUE:          {Variable *v = static_cast<Variable*>(op[0]); if (nops > 1) {inner.refresh(op[1]); v->init(inner.get_val());} else v->init(); return 0;}
-        case WHILE:          while(Operand(op[0])) inner.refresh(op[1]); if (nops > 2) inner.refresh(op[2]); return 0;
-        case IF:             if (Operand(op[0])) inner.refresh(op[1]); else if (nops > 2) inner.refresh(op[2]); return 0;
-        case ZERO:           if (Operand(op[0]) == 0) inner.refresh(op[1]); return 0;
-        case NOTZERO:        if (Operand(op[0]) != 0) inner.refresh(op[1]); return 0;
+        case VALUE:          { Variable *v = static_cast<Variable*>(op[0]); if (nops > 1) {inner.refresh(op[1]); v->init(inner.get_val());} else v->init(); return 0; }
+        case WHILE:          while(Operand(op[0]) != Operand(0, 0)) inner.refresh(op[1]); if (nops > 2) inner.refresh(op[2]); return 0;
+        case IF:             if (inner.refresh(op[0]) != Operand(0, 0)) inner.refresh(op[1]);
+                                else if (nops > 2) inner.refresh(op[2]); return 0;
+        case ZERO:           if (Operand(op[0]) == Operand(0, 0)) inner.refresh(op[1]); return 0;
+        case NOTZERO:        if (Operand(op[0]) != Operand(0, 0)) inner.refresh(op[1]); return 0;
         case PRINT:          inner.refresh(op[0]); inner.print("Output: "); return 0;
         case SEMI:           inner.refresh(op[0]); inner.refresh(op[1]); return 0;
         case ASSIGN:         if (op[0]->type >= 0) {Variable *v = std::any_cast<Variable*>(op[0]); v->set_var(Operand(op[1]).get_val());}
@@ -89,13 +90,13 @@ std::any Operation::ex()
         case MINUS:          return Operand(op[0]) - Operand(op[1]);
         case STAR:           return Operand(op[0]) * Operand(op[1]);
         case SLASH:          return Operand(op[0]) / Operand(op[1]);
-        case PERC:           return Operand(op[0]) + Operand(op[1]);
-        case LESS:           return Operand(op[0]) < Operand(op[1]);
-        case GREATER:        return Operand(op[0]) > Operand(op[1]);
-        case GE:             return Operand(op[0]) >= Operand(op[1]);
-        case LE:             return Operand(op[0]) <= Operand(op[1]);
-        case NE:             return Operand(op[0]) != Operand(op[1]);
-        case EQ:             return Operand(op[0]) == Operand(op[1]);
+        case PERC:           return Operand(op[0]) % Operand(op[1]);
+        case LESS:           if (Operand(op[0]) < Operand(op[1])) return 1; else return 0;
+        case GREATER:        if (Operand(op[0]) > Operand(op[1])) return 1; else return 0;
+        case GE:             if (Operand(op[0]) >= Operand(op[1])) return 1; else return 0;
+        case LE:             if (Operand(op[0]) <= Operand(op[1])) return 1; else return 0;
+        case NE:             if (Operand(op[0]) != Operand(op[1])) return 1; else return 0;
+        case EQ:             if (Operand(op[0]) == Operand(op[1])) return 1; else return 0;
     }
     return 0;
 }

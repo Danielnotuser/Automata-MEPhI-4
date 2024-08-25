@@ -23,6 +23,8 @@ std::any Operand::binary(int op_type, const Operand &op2) const
                     return a % b;
                 case 'C':
                     return a <=> b;
+                case 'E':
+                    return a == b;
             }
         }
         else {
@@ -35,7 +37,7 @@ std::any Operand::binary(int op_type, const Operand &op2) const
         int *a1 = std::any_cast<int*>(val);
         if (op2.type == 0 || op2.type == 6) {
             int b1 = std::any_cast<int>(op2.val);
-            if (b1 == 0 && op_type == 'C') return bool(a1);
+            if (b1 == 0 && op_type == 'E') return bool(a1);
             switch (op_type) {
                 case '+':
                     return a1 + b1;
@@ -45,6 +47,12 @@ std::any Operand::binary(int op_type, const Operand &op2) const
                     std::cerr << "Error! Invalid operator for pointer value.";
                     return 0;
             }
+        }
+        else if (op2.type == 1 || op2.type == 8)
+        {
+            int *a2 = std::any_cast<int*>(op2.val);
+            if (op_type == 'E') return a1 == a2;
+            else { std::cerr << "Error! Invalid operator for pointer value."; return 0; }
         }
         else {
             std::cerr << "Error! Invalid operand for pointer value.";
@@ -59,41 +67,40 @@ std::any Operand::binary(int op_type, const Operand &op2) const
     return 0;
 }
 
-std::any Operand::operator+(Operand & op)
+std::any Operand::operator+(const Operand & op)
 {
     return binary('+', op);
 }
 
-std::any Operand::operator-(Operand &op)
+std::any Operand::operator-(const Operand &op)
 {
     return binary('-', op);
 }
 
-std::any Operand::operator*(Operand &op)
+std::any Operand::operator*(const Operand &op)
 {
     return binary('*', op);
 }
 
-std::any Operand::operator/(Operand &op)
+std::any Operand::operator/(const Operand &op)
 {
     return binary('/', op);
 }
 
-std::any Operand::operator%(Operand &op)
+std::any Operand::operator%(const Operand &op)
 {
     return binary('%', op);
 }
 
-Operand::operator bool() const
-{
-    Operand op(0, 0);
-    return std::any_cast<bool>(binary('C', op));
 
+std::strong_ordering Operand::operator<=>(const Operand &op) const
+{
+    return std::any_cast<std::strong_ordering>(binary('C', op));
 }
 
-bool Operand::operator<=>(Operand &op) const
+bool Operand::operator==(const Operand &op) const
 {
-    return std::any_cast<bool>(binary('C', op));
+    return std::any_cast<bool>(binary('E', op));
 }
 
 Operand::Operand(Node* p)
@@ -134,7 +141,7 @@ Operand &Operand::refresh(Node *p)
 void Operand::print(const char *prompt)
 {
     if (type == 0 || type == 7)
-        std::cout << prompt << std::any_cast<int>(val);
+        std::cout << prompt << std::any_cast<int>(val) << std::endl;
     else
         std::cout << prompt << "Error! Invalid \"print\" argument. Only type value is required.";
 }

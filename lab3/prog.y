@@ -46,7 +46,9 @@ extern FILE *yyin;
 %nonassoc DEREF
 
 
-%nterm stmt expr stmt_list init var_ref glob_init functions function main
+%nterm stmt expr stmt_list var_ref
+%nterm init glob_init
+%nterm functions function main
 %nterm type const_type
 %nterm args add
 
@@ -64,7 +66,7 @@ main_name:
         ;
 
 main:
-        main_name stmt      {  Function f; func_tab.find_func(cur_func, f); f.set_ptr($2.nPtr); f.execute(); }
+        main_name stmt      {  Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); f.execute(); }
         ;
 
 functions:
@@ -78,7 +80,7 @@ function_name:
         ;
 
 function:
-        function_name stmt          { Function f; func_tab.find_func(cur_func, f); f.set_ptr($2.nPtr); f.execute(); }
+        function_name stmt          { Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); f.execute(); }
         ;
 
 args:
@@ -112,25 +114,25 @@ const_type:
         ;
 
 glob_init:
-           init SEMI
-        |  glob_init init SEMI
+           init
+        |  glob_init init
         ;
 
 init:
-          type NAME                                 { auto *v = new Variable($1.intVal, $2.strVal);
-                                                        if (func_tab.find_var(cur_func, $2.strVal, *v)) { std::cerr << "Redefinition of the variable " << $2.strVal << ".\n";  $$.nPtr = static_cast<Node*>(v); }
+          type NAME SEMI                                { auto *v = new Variable($1.intVal, $2.strVal);
+                                                        if (func_tab.find_var(cur_func, $2.strVal, v)) { std::cerr << "Redefinition of the variable " << $2.strVal << ".\n";  $$.nPtr = static_cast<Node*>(v); }
                                                         else {  auto *op = new Operation(VALUE, 1, static_cast<Node*>(v)); func_tab.insert_var(cur_func, *v); $$.nPtr = static_cast<Node*>(op); } }
-        | type NAME ASSIGN expr                     { auto *v = new Variable($1.intVal, $2.strVal);
-                                                        if (func_tab.find_var(cur_func, $2.strVal, *v)) { std::cerr << "Redefinition of the variable " << $2.strVal << ".\n"; $$.nPtr = static_cast<Node*>(v); }
+        | type NAME ASSIGN expr SEMI                   { auto *v = new Variable($1.intVal, $2.strVal);
+                                                        if (func_tab.find_var(cur_func, $2.strVal, v)) { std::cerr << "Redefinition of the variable " << $2.strVal << ".\n"; $$.nPtr = static_cast<Node*>(v); }
                                                         else { auto *op = new Operation(VALUE, 2, static_cast<Node*>(v), $4.nPtr); func_tab.insert_var(cur_func, *v); $$.nPtr = static_cast<Node*>(op); } }
-        | const_type NAME ASSIGN expr               { auto *v = new Variable($1.intVal, $2.strVal);
-                                                        if (func_tab.find_var(cur_func, $2.strVal, *v)) { std::cerr << "Redefinition of the variable " << $2.strVal << ".\n";  $$.nPtr = static_cast<Node*>(v); }
+        | const_type NAME ASSIGN expr SEMI             { auto *v = new Variable($1.intVal, $2.strVal);
+                                                        if (func_tab.find_var(cur_func, $2.strVal, v)) { std::cerr << "Redefinition of the variable " << $2.strVal << ".\n";  $$.nPtr = static_cast<Node*>(v); }
                                                         else { auto *op = new Operation(VALUE, 2, static_cast<Node*>(v), $4.nPtr); func_tab.insert_var(cur_func, *v); $$.nPtr = static_cast<Node*>(op); } }
         ;
 
 stmt:
-          SEMI                                                               { auto *op = new Operation(SEMI, 2, NULL, NULL); $$.nPtr = static_cast<Node*>(op); }
-        | init SEMI                                                          { $$.nPtr = $1.nPtr; }
+          SEMI                                                               // { auto *op = new Operation(SEMI, 2, NULL, NULL); $$.nPtr = static_cast<Node*>(op); }
+        | init                                                               { $$.nPtr = $1.nPtr; }
         | expr SEMI                                                          { $$.nPtr = $1.nPtr; }
         | RETURN expr SEMI                                                   { auto *op = new Operation(RETURN, 1, $2.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | BREAK SEMI                                                         { auto *op = new Operation(BREAK, 0); $$.nPtr = static_cast<Node*>(op); }
@@ -151,8 +153,8 @@ stmt_list:
         ;
 
 var_ref:
-        NAME %prec NAMEX    { Variable *v = new Variable; if (!func_tab.find_var(cur_func, $1.strVal, *v) && !global_vars.find_var($1.strVal, *v))
-                                                 std::cerr << "Error! Invalid access to an uninitialized variable. line: " << @1.first_line << "\n";
+        NAME %prec NAMEX    { Variable *v = new Variable; if (!func_tab.find_var(cur_func, $1.strVal, v))
+                                {if(!global_vars.find_var($1.strVal, v)) {std::cerr << "Error! Invalid access to an uninitialized variable. line: " << @1.first_line << "\n";}}
                                 $$.nPtr = static_cast<Node*>(v);
                             }
         ;

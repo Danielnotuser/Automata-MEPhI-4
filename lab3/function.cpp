@@ -1,13 +1,14 @@
 #include <iostream>
 #include "table.h"
 
-int VariableTable::find_var(std::string name, Variable &res)
+int VariableTable::find_var(std::string name, Variable *res)
 {
+    if (name.empty()) return 0;
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return std::tolower(c); });
     for (auto v = vars.begin(); v != vars.end(); v++)
         if (v->first == name)
         {
-            res = v->second;
+            *res = v->second;
             return 1;
         }
     return 0;
@@ -22,23 +23,23 @@ std::any Function::execute()
 }
 
 
-int FunctionTable::find_func(std::string name, Function &res)
+int FunctionTable::find_func(std::string name, Function *res)
 {
     if (name.empty()) return 0;
     std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c){ return std::tolower(c); });
     for (auto v = func.begin(); v != func.end(); v++)
         if (v->first == name)
         {
-            res = v->second;
+            *res = v->second;
             return 1;
         }
     return 0;
 }
 
-int FunctionTable::find_var(std::string func_name, std::string var_name, Variable &res)
+int FunctionTable::find_var(std::string func_name, std::string var_name, Variable *res)
 {
     if (func_name.empty() || var_name.empty()) return 0;
     Function f;
-    if (!find_func(func_name, f)) return 0;
+    if (!find_func(func_name, &f)) return 0;
     return f.find_var(var_name, res);
 }

@@ -14,7 +14,7 @@ class VariableTable {
     public:
         VariableTable() : vars() {};
         VariableTable(std::map<std::string, Variable> m) : vars(m) {};
-        int find_var(std::string var_name, Variable &res);
+        int find_var(std::string var_name, Variable *res);
         void insert(Variable &p) {vars.insert(std::make_pair(p.get_name(), p));};
         void insert(VariableTable &a) {vars.insert(a.vars.begin(), a.vars.end());};
         void clear() {vars.clear();};
@@ -33,8 +33,8 @@ class Function {
         Function(int ret_type, char *name, VariableTable args) : ret_type(ret_type), name(name), args(args) {};
         Function(int ret_type, char *name, VariableTable args, Node *n_ptr) : ret_type(ret_type), name(name), args(args), n_ptr(n_ptr) {};
 
-        int find_var(std::string var_name, Variable &res) {return var_tab.find_var(var_name, res);};
-        void insert_var(Variable &v) {return var_tab.insert(v);};
+        int find_var(std::string var_name, Variable *res) {return var_tab.find_var(var_name, res);};
+        void insert_var(Variable &v) {var_tab.insert(v);};
 
         std::string get_name() {return name;};
         void set_ptr(Node *ptr) {n_ptr = ptr;};
@@ -50,8 +50,8 @@ class FunctionTable {
 
         Function get_func(std::string name) { return func[name]; };
 
-        int find_func(std::string func_name, Function& f);
-        int find_var(std::string func_name, std::string var_name, Variable &res);
+        int find_func(std::string func_name, Function* f);
+        int find_var(std::string func_name, std::string var_name, Variable *res);
 
         void insert_var(std::string fname, Variable &v) { func[fname].insert_var(v); };
         void insert_func(Function f) { func[f.get_name()] = f; };

@@ -3,6 +3,7 @@
 
 #include <any>
 #include <string>
+#include <map>
 
 class Node {
     public:
@@ -13,6 +14,38 @@ class Node {
         virtual std::any ex() = 0;
         int get_type() { return type; };
         ~Node() = default;
+};
+
+class Number : public Node {
+    private:
+        int num;
+    public:
+        Number() = default;
+        Number(int num) : Node(-2), num(num) {};
+        std::any ex() override { return num; };
+        ~Number() = default;
+};
+
+class Variable : public Node {
+private:
+    int size;
+    int exp;
+    std::string name;
+    std::any var;
+public:
+    Variable() : size(0) {};
+    Variable(int var_type, std::string name) : name(name) {type = var_type;};
+    void init(std::any a = std::any());
+    explicit Variable(const Variable&);
+
+    std::any ex() override { return var; };
+    bool empty() { return !var.has_value(); }
+
+    std::string get_name() {return name;};
+    Variable &set_var(std::any);
+
+    ~Variable() = default;
+
 };
 
 class Operation : public Node {
@@ -27,37 +60,7 @@ class Operation : public Node {
 
 };
 
-class Number : public Node {
-    private:
-        int num;
-    public:
-        Number() = default;
-        Number(int num) : Node(-2), num(num) {};
-        std::any ex() override { return num; };
-        ~Number() = default;
-};
 
-class Variable : public Node {
-    private:
-        int size;
-        int exp;
-        std::string name;
-        std::any var;
-    public:
-        Variable() : size(0) {};
-        Variable(int var_type, std::string name) : name(name) {type = var_type;};
-        void init(std::any a = std::any());
-        explicit Variable(const Variable&);
-
-        std::any ex() override { return var; };
-        bool empty() { return !var.has_value(); }
-
-        std::string get_name() {return name;};
-        Variable &set_var(std::any);
-
-        ~Variable() = default;
-
-};
 
 
 std::any execute(std::string, Node *);
