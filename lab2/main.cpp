@@ -12,7 +12,7 @@ int main()
 {
     // "(<beb>n-p?-r-q)?-(<ded>y-t)?|a-h{,2}"
     // "(p|p+)|(p|p+)+"
-	std::string pat = "a|b";
+	std::string pat = "(<beb>n-p?-r-q+)?-(<ded>y-t)?-p|(<quq>a-h)";
     std::cout << pat << std::endl;
     try {
         // Syntax tree synthesis
@@ -23,8 +23,13 @@ int main()
         NFA nf_auto(tr);
         //nf_auto.print("../viz/nfa.dot");
         // DFA synthesis & checking
+        std::string res;
+        std::string gr_name = "beb";
+        std::string ch = "nrqytp";
+        std::cout << "Checking \"" << ch << "\": " << std::endl;
+        if (nf_auto.check_with_group(ch, gr_name, res))
+            std::cout << "Captures group " << gr_name << " = " << res << std::endl;
         DFA df_auto(nf_auto);
-        std::string ch = "";
         std::cout << "DFA: Checking string \"" << ch << "\" . . . ";
         if (df_auto.check(ch)) std::cout << "This string is ok!" << std::endl;
         else std::cout << "This string is NOT ok" << std::endl;
@@ -38,7 +43,6 @@ int main()
         std::string k_p = df_auto.k_path();
         STree tr2;
         tr2.synt("a|b");
-        tr2.lcp(std::cout);
         NFA nf2(tr2);
         DFA df2(nf2);
         df2.minimize();
@@ -47,7 +51,7 @@ int main()
         DFA sum_df = df_auto + df2;
         sum_df.print("../viz/sum_df.dot");
         // RegEx Inversion
-        std::string inv_pat = inversion(pat);
+        //std::string inv_pat = inversion(pat);
     }
 	catch (const std::exception &e) {
         std::cerr << e.what() << std::endl;

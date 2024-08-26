@@ -18,13 +18,15 @@ class NFA {
 private:
     StateNFA *start, *end;
     std::vector<char> alphabet;
+    std::map<std::string, std::pair<StateNFA*, StateNFA*>> groups;
     NFA all_nfa();
     NFA plus_nfa(NFA&);
     NFA question_nfa(NFA&);
-    NFA repeat_nfa(Node*, NFA&);
+    NFA repeat_nfa(Node*, NFA&, const std::map<std::string, Node*>&);
     NFA concatenation_nfa(NFA&, NFA&);
     NFA union_nfa(NFA&, NFA&);
-    NFA recur(Node *rt);
+    int in_group(Node *rt, const std::map<std::string, Node*> &gr, std::string &name);
+    NFA recur(Node *rt, std::map<std::string, Node*>);
 public:
     // constructors
     NFA() {start = new StateNFA; end = new StateNFA;};
@@ -38,6 +40,7 @@ public:
     // overload
     NFA &operator=(NFA&& n) noexcept {start = n.start; end = n.end; n.start = nullptr; n.end = nullptr; return *this;};
     // other
+    int check_with_group(std::string pat, std::string name, std::string &res);
     void print(const std::string&);
 
 };

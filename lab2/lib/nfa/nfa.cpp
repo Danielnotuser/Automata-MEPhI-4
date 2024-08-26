@@ -34,7 +34,7 @@ NFA NFA::question_nfa(NFA& n1)
     n.start->epsilon.push_back(n.end);
     return n;
 }
-NFA NFA::repeat_nfa(Node* r, NFA& n1)
+NFA NFA::repeat_nfa(Node* r, NFA& n1, const std::map<std::string, Node*> &gr)
 {
     NFA res;
     auto b = static_cast<BraceNode*>(r);
@@ -43,7 +43,7 @@ NFA NFA::repeat_nfa(Node* r, NFA& n1)
     if (fir) {
         res_cat = std::move(n1);
         for (int i = 1; i < fir; i++) {
-            NFA temp = recur(r->left);
+            NFA temp = recur(r->left, gr);
             res_cat = concatenation_nfa(res_cat, temp);
         }
     }
@@ -52,11 +52,11 @@ NFA NFA::repeat_nfa(Node* r, NFA& n1)
         if (fir == sec) res = std::move(res_cat); // {?,?}
         else
         {
-            NFA temp = recur(r->left);
-            NFA res_uni = recur(r->left);
+            NFA temp = recur(r->left, gr);
+            NFA res_uni = recur(r->left, gr);
             for (int j = 1; j < sec - fir; j++)
             {
-                NFA t = recur(r->left);
+                NFA t = recur(r->left, gr);
                 temp = concatenation_nfa(temp, t);
                 res_uni = union_nfa(res_uni, temp);
             }
@@ -74,7 +74,7 @@ NFA NFA::repeat_nfa(Node* r, NFA& n1)
     }
     else // {?,}
     {
-        NFA temp = recur(r->left);
+        NFA temp = recur(r->left, gr);
         temp = question_nfa(temp);
         temp = plus_nfa(temp);
         res = concatenation_nfa(res_cat, temp);
@@ -87,6 +87,11 @@ NFA NFA::concatenation_nfa(NFA& n1, NFA& n2)
     NFA n;
     n1.end->epsilon = n2.start->epsilon;
     n1.end->edge = n2.start->edge;
+    for (auto it = groups.begin(); it != groups.end(); it++)
+    {
+        if (it->second.first == n2.start) it->second.first = n1.end;
+        if (it->second.second == n2.start) it->second.second = n1.end;
+    }
     n.start = n1.start;
     n.end = n2.end;
     return n;
@@ -102,37 +107,58 @@ NFA NFA::union_nfa(NFA& n1, NFA& n2)
     return n;
 }
 
-NFA NFA::recur(Node *rt)
+int NFA::in_group(Node *rt, const std::map<std::string, Node*> &gr, std::string &name)
+{
+    for (auto it = gr.begin(); it != gr.end(); it++)
+        if (rt == it->second)
+        {
+            name = it->first;
+            return 1;
+        }
+    return 0;
+}
+
+NFA NFA::recur(Node *rt, std::map<std::string, Node*> gr)
 {
     std::string spec = "{.+-|?";
-    NFA n1, n2, n;
-    if (rt->info == '&' && rt->left) return NFA(rt->left->info);
-    if (rt->left) n1 = recur(rt->left);
-    if (rt->right) n2 = recur(rt->right);
-    if (spec.find(rt->info) == spec.npos)
-    {n = NFA(rt->info); return n;}
+    NFA n1, n2;
+    std::string name;
+    if (rt->info == '&' && rt->left) {
+        NFA a_nfa(rt->left->info);
+        if (in_group(rt, gr, name)) groups[name] = std::make_pair(a_nfa.start, a_nfa.end);
+        return NFA(rt->left->info);
+    }
+    if (rt->left) n1 = recur(rt->left, gr);
+    if (rt->right) n2 = recur(rt->right, gr);
+    if (spec.find(rt->info) == spec.npos) {
+        NFA a_nfa(rt->info);
+        if (in_group(rt, gr, name)) groups[name] = std::make_pair(a_nfa.start, a_nfa.end);
+        return NFA(rt->info);
+    }
+    NFA n;
     switch (rt->info)
     {
         case '.':
-            return all_nfa();
+            n = all_nfa(); break;
         case '{':
-            return repeat_nfa(rt, n1);
+            n = repeat_nfa(rt, n1, gr); break;
         case '+':
-            return plus_nfa(n1);
+            n = plus_nfa(n1); break;
         case '?':
-            return question_nfa(n1);
+            n = question_nfa(n1); break;
         case '-':
-            return concatenation_nfa(n1, n2);
+            n = concatenation_nfa(n1, n2); break;
         case '|':
-            return union_nfa(n1, n2);
+            n = union_nfa(n1, n2); break;
     }
+    if (in_group(rt, gr, name)) groups[name] = std::make_pair(n.start, n.end);
     return n;
 }
 
 NFA::NFA(STree &tr)
 {
     alphabet = tr.alphabet;
-    NFA n = recur(tr.root);
+    NFA n = recur(tr.root, tr.groups);
     start = n.start;
     end = n.end;
 }
@@ -169,6 +195,59 @@ void rec_print(std::ofstream &f, StateNFA *v, int cnt)
         }
     }
 
+}
+
+std::vector<StateNFA*> eps_closure(StateNFA* ch)
+{
+    std::vector<StateNFA*> res;
+    res.push_back(ch);
+    for (size_t i = 0; i < ch->epsilon.size(); i++)
+    {
+        std::vector<StateNFA*> add = eps_closure(ch->epsilon[i]);
+        res.insert(res.end(), add.begin(), add.end());
+    }
+    return res;
+}
+
+StateNFA* transition(std::vector<StateNFA*> &ch, char c)
+{
+    for (size_t i = 0; i < ch.size(); i++)
+        if (ch[i]->edge.find(c) != ch[i]->edge.end()) return ch[i]->edge[c];
+    return nullptr;
+}
+
+int search(std::vector<StateNFA*> eps, StateNFA* ch)
+{
+    for (size_t i = 0; i < eps.size(); i++)
+        if (eps[i] == ch) return 1;
+    return 0;
+}
+
+int NFA::check_with_group(std::string pat, std::string name, std::string &res)
+{
+    if (groups.find(name) == groups.end()) { std::cout << "Error! No such group with this name." << std::endl; return 0; }
+    StateNFA *ch = start;
+    std::string res_gr;
+    char last;
+    std::vector<StateNFA*> eps = eps_closure(ch);
+    bool read = false, check_end = false, check_start = false;
+    for (auto c : pat)
+    {
+        if (search(eps, groups[name].first)) check_start = true;
+        else if (check_start) {read = true; res_gr = last; check_start = false;}
+        StateNFA *prev_ch = ch;
+        ch = transition(eps, c);
+        if (ch == nullptr) return 0;
+        if (search(eps, groups[name].first) && ch != groups[name].first->edge[c]) read = false;
+        else if (read) res_gr += c;
+        if (check_start) last = c;
+        eps = eps_closure(ch);
+        if (search(eps, groups[name].second)) check_end = true;
+        else if (check_end) {res_gr.erase(res_gr.begin() + res_gr.size() - 1); read = false; check_end = false;}
+
+    }
+    res = res_gr;
+    return search(eps, end);
 }
 
 void NFA::print(const std::string& name)

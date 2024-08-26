@@ -58,6 +58,21 @@ TEST_CASE("NFA testing")
         REQUIRE(n1.get_end() == nullptr);
         REQUIRE(n3.get_start()->edge[c1] == n3.get_end());
     }
+    SECTION("Capture groups")
+    {
+        STree tr;
+        tr.synt("(<beb>n-p?-r-q+)?-(<ded>y-t)?-p|(<quq>a-h)");
+        NFA n(tr);
+        std::string name;
+        std::string ch_str = "nprqqqyt";
+        n.check_with_group(ch_str, "beb", name);
+        REQUIRE(name == "nprqqq");
+        n.check_with_group(ch_str, "ded", name);
+        REQUIRE(name == "yt");
+        ch_str = "ah";
+        n.check_with_group(ch_str, "quq", name);
+        REQUIRE(name == "ah");
+    }
 }
 
 TEST_CASE("DFA testing")
