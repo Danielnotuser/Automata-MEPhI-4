@@ -363,13 +363,14 @@ DFA DFA::operator+(DFA& d)
     d_states.insert(d_states.end(), d.not_end.begin(), d.not_end.end());
     d_states.insert(d_states.end(), d.end.begin(), d.end.end());
     DFA res;
+    res.alphabet = alphabet;
     std::vector<State*> res_states;
     std::vector<std::pair<State*, State*>> res_depend;
     for (auto s1 : all_states)
     {
         for (auto s2 : d_states)
         {
-            auto s = new State;
+            auto *s = new State;
             res_depend.emplace_back(s1, s2);
             res_states.push_back(s);
             if (std::find(end.begin(), end.end(), s1) != end.end() && std::find(d.end.begin(), d.end.end(), s2) != d.end.end())
@@ -384,9 +385,11 @@ DFA DFA::operator+(DFA& d)
         {
             if (auto f = res_depend[i].second->edge.find(s.first); f != res_depend[i].second->edge.end())
             {
-                auto r_d = std::find(res_depend.begin(), res_depend.end(), std::make_pair(s.second, f->second));
-                if (r_d != res_depend.end())
-                    res_states[i]->edge[s.first] = r_d->second;
+                int cnt = -1;
+                for (size_t j = 0; j < res_depend.size(); j++)
+                    if (res_depend[j] == std::make_pair(s.second, f->second)) {cnt = j; break;}
+                if (cnt != -1)
+                    res_states[i]->edge[s.first] = res_states[cnt];
             }
         }
     }

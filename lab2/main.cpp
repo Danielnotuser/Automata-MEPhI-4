@@ -12,7 +12,7 @@ int main()
 {
     // "(<beb>n-p?-r-q)?-(<ded>y-t)?|a-h{,2}"
     // "(p|p+)|(p|p+)+"
-	std::string pat = "(<beb>n-p?-r-q+)?-(<ded>y-t)?-p|(<quq>a-h)";
+	std::string pat = "a|b";
     std::cout << pat << std::endl;
     try {
         // Syntax tree synthesis
@@ -21,11 +21,11 @@ int main()
         tr.lcp(std::cout);
         // NFA synthesis
         NFA nf_auto(tr);
-        //nf_auto.print("../viz/nfa.dot");
+        nf_auto.print("../viz/nfa.dot");
         // DFA synthesis & checking
         std::string res;
-        std::string gr_name = "beb";
-        std::string ch = "nrqytp";
+        std::string gr_name = "quq";
+        std::string ch = "ahh";
         std::cout << "Checking \"" << ch << "\": " << std::endl;
         if (nf_auto.check_with_group(ch, gr_name, res))
             std::cout << "Captures group " << gr_name << " = " << res << std::endl;
