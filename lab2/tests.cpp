@@ -93,4 +93,69 @@ TEST_CASE("DFA testing")
         REQUIRE(!d1.check("mmmm"));
         REQUIRE(d1.check("tp"));
     }
+    SECTION("minDFA")
+    {
+        STree s;
+        s.synt("m-n+-p|r?|(y-r)+");
+        NFA n(s);
+        DFA d(n);
+        d.minimize();
+        REQUIRE(d.check("mnp"));
+        REQUIRE(d.check("yryr"));
+        REQUIRE(!d.check("mp"));
+        s.synt("m{1,3}|r?|t-p");
+        NFA n1(s);
+        DFA d1(n1);
+        d1.minimize();
+        REQUIRE(d1.check(""));
+        REQUIRE(!d1.check("mmmm"));
+        REQUIRE(d1.check("tp"));
+    }
+    SECTION("K-path")
+    {
+        STree s;
+        s.synt("a+");
+        NFA n(s);
+        DFA d(n);
+        d.minimize();
+        REQUIRE_NOTHROW(s.synt(d.k_path()));
+    }
+    SECTION("Intersection DFA")
+    {
+        STree s;
+        s.synt("a|b-c");
+        NFA n(s);
+        DFA d1(n);
+        d1.minimize();
+        s.synt("a|b");
+        NFA n2(s);
+        DFA d2(n2);
+        d2.minimize();
+        DFA sum_df = d1 + d2;
+        REQUIRE(sum_df.check("a"));
+        REQUIRE(!sum_df.check("b"));
+        REQUIRE(!sum_df.check("bc"));
+    }
+    SECTION("Inversion DFA")
+    {
+        STree s;
+        s.synt("a-b");
+        NFA n(s);
+        DFA d(n);
+        d.minimize();
+        REQUIRE(d.check("ab"));
+        d.inverse();
+        REQUIRE(d.check("ba"));
+        s.synt("a-b|c-d|e-f");
+        NFA n1(s);
+        DFA d1(n1);
+        d1.minimize();
+        REQUIRE(d1.check("ab"));
+        REQUIRE(d1.check("cd"));
+        REQUIRE(d1.check("ef"));
+        d1.inverse();
+        REQUIRE(d1.check("ba"));
+        REQUIRE(d1.check("dc"));
+        REQUIRE(d1.check("fe"));
+    }
 }

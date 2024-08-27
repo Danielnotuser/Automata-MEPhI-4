@@ -27,11 +27,13 @@ public:
     DFA() {start = new State;};
     explicit DFA(NFA&);
     DFA(DFA&&d) noexcept;
+    DFA &operator=(DFA&&d) noexcept;
     void minimize();
     std::string k_path();
     int check(const std::string&);
     void print(const std::string&);
     DFA operator+(DFA &);
+    void inverse();
 };
 
 #endif //REGEX_DFA_H

@@ -9,14 +9,14 @@
 void DFA::eps_closure(StateNFA* s, std::vector<StateNFA*> &res)
 {
     res.push_back(s);
-    for (auto i : s->epsilon)
+    for (size_t i = 0; i < s->epsilon.size(); i++)
     {
-        if (std::find(res.begin(), res.end(), i) != res.end()) continue;
-        if (!i->epsilon.empty()) {
-            eps_closure(i, res);
+        if (std::find(res.begin(), res.end(), s->epsilon[i]) != res.end()) continue;
+        if (!s->epsilon[i]->epsilon.empty()) {
+            eps_closure(s->epsilon[i], res);
         }
         else
-            res.push_back(i);
+            res.push_back(s->epsilon[i]);
 
     }
 }
@@ -99,6 +99,19 @@ DFA::DFA(DFA&&d) noexcept
     d.not_end = std::vector<State*>();
     d.end = std::vector<State*>();
     d.alphabet = std::vector<char>();
+}
+
+DFA &DFA::operator=(DFA&&d) noexcept
+{
+    start = d.start;
+    not_end = d.not_end;
+    alphabet = d.alphabet;
+    end = d.end;
+    d.start = nullptr;
+    d.not_end = std::vector<State*>();
+    d.end = std::vector<State*>();
+    d.alphabet = std::vector<char>();
+    return *this;
 }
 
 bool DFA::same_group(std::vector<std::vector<State*>>& state_groups, State* s1, State *s2)
@@ -184,13 +197,15 @@ void DFA::minimize()
     }
     std::vector<State*> m_states;
     for (size_t i = 0; i < state_groups.size(); i++) {auto *new_s = new State; m_states.push_back(new_s);}
-    std::vector<State*> new_end;
+    std::vector<State*> new_end, new_not_end;
     for (size_t i = 0; i < state_groups.size(); i++)
     {
         if (std::find(state_groups[i].begin(), state_groups[i].end(), start) != state_groups[i].end())
             start = m_states[i];
         if (has_end(state_groups[i], end))
             new_end.push_back(m_states[i]);
+        else
+            new_not_end.push_back(m_states[i]);
         for (auto c : alphabet)
         {
             for (size_t j = 0; j < state_groups.size(); j++)
@@ -204,6 +219,7 @@ void DFA::minimize()
         }
     }
     end = new_end;
+    not_end = new_not_end;
 }
 
 std::map<int, State*> DFA::number(std::map<State*, int> &end_num)
@@ -347,7 +363,7 @@ void DFA::print(const std::string &name)
     num = number(t);
     std::ofstream f;
     f.open(name);
-    f << "digraph NFA {\nrankdir=\"LR\"\n";
+    f << "digraph DFA {\nrankdir=\"LR\"\n";
     std::vector<State*> st;
     dfa_print(f, st, start, num);
     f << "}";
@@ -394,4 +410,69 @@ DFA DFA::operator+(DFA& d)
         }
     }
     return res;
+}
+
+void DFA::inverse()
+{
+    std::vector<State*> all_states, new_start;
+    State* new_end;
+    all_states.insert(all_states.end(), not_end.begin(), not_end.end());
+    all_states.insert(all_states.end(), end.begin(), end.end());
+    std::vector<std::pair<State*, State*>> edge_map;
+    std::vector<char> char_map;
+    for (size_t i = 0; i < all_states.size(); i++)
+    {
+        if (std::find(end.begin(), end.end(), all_states[i]) != end.end()) new_start.push_back(all_states[i]);
+        if (all_states[i] == start) new_end = all_states[i];
+        for (size_t j = 0; j < all_states.size(); j++)
+        {
+            if (i == j) continue;
+            for (auto c: alphabet)
+            {
+                if (all_states[i]->edge[c] == all_states[j])
+                {
+                    edge_map.emplace_back(all_states[i], all_states[j]);
+                    char_map.push_back(c);
+                }
+            }
+        }
+        all_states[i]->edge.clear();
+    }
+
+    for (size_t i = 0; i < edge_map.size(); i++)
+    {
+        edge_map[i].second->edge[char_map[i]] = edge_map[i].first;
+    }
+
+    std::vector<StateNFA*> nfa_states(all_states.size()), nfa_start;
+    for (size_t i = 0; i < nfa_states.size(); i++) nfa_states[i] = new StateNFA;
+    auto* nfa_end = new StateNFA;
+    for (size_t i = 0; i < all_states.size(); i++)
+    {
+        if (std::find(new_start.begin(), new_start.end(), all_states[i]) != new_start.end()) nfa_start.push_back(nfa_states[i]);
+        if (all_states[i] == new_end) nfa_end = nfa_states[i];
+        for (auto it = all_states[i]->edge.begin(); it != all_states[i]->edge.end(); it++)
+        {
+            for (size_t j = 0; j < all_states.size(); j++)
+            {
+                if (it->second == all_states[j]) {
+                    nfa_states[i]->edge.insert(
+                            {it->first,
+                             nfa_states[j]});
+                    break;
+                }
+            }
+        }
+    }
+
+    StateNFA *act_start = new StateNFA;
+    for (size_t i = 0; i < nfa_start.size(); i++)
+    {
+        act_start->epsilon.push_back(nfa_start[i]);
+    }
+    NFA n(act_start, nfa_end, alphabet);
+    n.print("../viz/inv_nfa.dot");
+    DFA inv(n);
+    inv.print("../viz/inv.dot");
+    *this = std::move(inv);
 }

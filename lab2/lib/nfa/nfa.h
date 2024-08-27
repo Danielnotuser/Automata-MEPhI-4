@@ -8,7 +8,7 @@ class StateNFA {
 public:
     std::map<char, StateNFA*> edge; // weight (alphabet) - State from (!)
     std::vector<StateNFA*> epsilon;
-    StateNFA() = default;
+    StateNFA() : edge(), epsilon() {};
     StateNFA(const StateNFA& v) = default;
     StateNFA& operator=(const StateNFA& v) = default;
     ~StateNFA() = default;
@@ -30,6 +30,7 @@ private:
 public:
     // constructors
     NFA() {start = new StateNFA; end = new StateNFA;};
+    NFA(StateNFA *start, StateNFA *end, std::vector<char> alphabet) : start(start), end(end), alphabet(alphabet) {};
     explicit NFA(char weight) {start = new StateNFA; end = new StateNFA; start->edge[weight] = end;};
     explicit NFA(STree&);
     NFA(NFA&& n) noexcept;
