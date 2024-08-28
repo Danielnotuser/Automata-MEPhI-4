@@ -126,6 +126,7 @@ Operand::Operand(Node* p)
             type = 0;
         else if (val.type() == typeid(int*))
             type = 1;
+        else throw "Ew..";
 
     }
 }

@@ -5,7 +5,7 @@
 #include "operand.h"
 #include "y.tab.h"
 
-Operation::Operation(int id, int nops, ...) : id(id), nops(nops)
+Operation::Operation(VariableTable *glob, VariableTable *func, int id, int nops, ...) : id(id), nops(nops), func_vars(func), glob_vars(glob)
 {
     type = -1;
     va_list ap;
@@ -16,7 +16,29 @@ Operation::Operation(int id, int nops, ...) : id(id), nops(nops)
     va_end(ap);
 }
 
-std::any deref(Node *p)
+Operation::Operation(VariableTable *func, int id, int nops, ...) : id(id), nops(nops), func_vars(func), glob_vars(nullptr)
+{
+    type = -1;
+    va_list ap;
+    va_start(ap, nops);
+    op = new Node*[nops];
+    for (int i = 0; i < nops; i++)
+        op[i] = va_arg(ap, Node*);
+    va_end(ap);
+}
+
+Operation::Operation(int id, int nops, ...) : id(id), nops(nops), func_vars(nullptr), glob_vars(nullptr)
+{
+    type = -1;
+    va_list ap;
+    va_start(ap, nops);
+    op = new Node*[nops];
+    for (int i = 0; i < nops; i++)
+        op[i] = va_arg(ap, Node*);
+    va_end(ap);
+}
+
+std::any deref(Variable *p)
 {
     switch (p->type)
     {
@@ -27,7 +49,7 @@ std::any deref(Node *p)
     }
 }
 
-std::any address(Node *p)
+std::any address(Variable *p)
 {
     switch (p->type)
     {
@@ -47,7 +69,7 @@ std::any address(Node *p)
     return 0;
 }
 
-std::any arr_el_ref(Node *var_node, Node *ind_node)
+std::any Operation::arr_el_ref(Node *var_node, Node *ind_node)
 {
     if (var_node->type <= 1 || (var_node->type >= 6 && var_node->type <= 8)) { std::cerr << "Error! Reference by index to the element of array went wrong: variable is not an array."; return 0; }
     Variable *var = static_cast<Variable*>(var_node);
@@ -67,24 +89,40 @@ std::any arr_el_ref(Node *var_node, Node *ind_node)
     return 0;
 }
 
+Variable *Operation::ref_name(Node *p)
+{
+    Variable *v = static_cast<Variable*>(p);
+    if (!func_vars->find_var(v->get_name(), v))
+    {
+        if (!glob_vars->find_var(v->get_name(), v))
+            throw std::runtime_error("Invalid access to an uninitialized variable.");
+    }
+    return v;
+}
+
 std::any Operation::ex()
 {
     Operand inner;
     switch (id)
     {
-        case VALUE:          { Variable *v = static_cast<Variable*>(op[0]); if (nops > 1) {inner.refresh(op[1]); v->init(inner.get_val());} else v->init(); return 0; }
-        case WHILE:          while(Operand(op[0]) != Operand(0, 0)) inner.refresh(op[1]); if (nops > 2) inner.refresh(op[2]); return 0;
+        case VALUE:          { Variable *v = static_cast<Variable*>(op[0]); if (nops > 1) { inner.refresh(op[1]); v->init(inner.get_val()); }
+                                else v->init(); if (func_vars->find_var(v->get_name(), v)) throw std::runtime_error("Initialization of already initialized value.");
+                                func_vars->insert(*v); return 0; }
+        case NAME:           { Variable *v = ref_name(op[0]); return v->get_val(); }
+        case ASSIGN:         { Variable *v = ref_name(op[0]); v->set_var(Operand(op[1]).get_val()); return 0; }
+        case DEREF:          { Variable *v = ref_name(op[0]); return deref(v); }
+        case ADDR:           { Variable *v = ref_name(op[0]); return address(v); }
+        case LSQUARE:        return arr_el_ref(op[0], op[1]);
+        case WHILE:          { bool br = false; while(Operand(op[0]) != Operand(0, 0)) {
+                                    try { inner.refresh(op[1]); }
+                                    catch (const std::string &e) { if (e == "break") {br = true; break;} } } if (nops > 2 && !br) inner.refresh(op[2]); return 0; }
+        case BREAK:          throw "break";
         case IF:             if (inner.refresh(op[0]) != Operand(0, 0)) inner.refresh(op[1]);
                                 else if (nops > 2) inner.refresh(op[2]); return 0;
         case ZERO:           if (Operand(op[0]) == Operand(0, 0)) inner.refresh(op[1]); return 0;
         case NOTZERO:        if (Operand(op[0]) != Operand(0, 0)) inner.refresh(op[1]); return 0;
         case PRINT:          inner.refresh(op[0]); inner.print("Output: "); return 0;
         case SEMI:           inner.refresh(op[0]); inner.refresh(op[1]); return 0;
-        case ASSIGN:         if (op[0]->type >= 0) {Variable *v = std::any_cast<Variable*>(op[0]); v->set_var(Operand(op[1]).get_val());}
-                                    else std::cerr << "Error! Um.. lvalue of assignment is not a variable..";
-        case DEREF:          return deref(op[0]);
-        case ADDR:           return address(op[0]);
-        case LSQUARE:        return arr_el_ref(op[0], op[1]);
         case UMINUS:         return Operand(0, 0)  - Operand(op[0]);
         case PLUS:           return Operand(op[0]) + Operand(op[1]);
         case MINUS:          return Operand(op[0]) - Operand(op[1]);

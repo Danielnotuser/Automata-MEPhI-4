@@ -4,7 +4,7 @@
 
 %{
 #include "type.h"
-#include "table.h"
+#include "function.h"
 
 struct val  {
 	char* strVal;

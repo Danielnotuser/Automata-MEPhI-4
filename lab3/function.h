@@ -7,20 +7,6 @@
 #include <map>
 #include "type.h"
 
-
-class VariableTable {
-    private:
-        std::map<std::string, Variable> vars;
-    public:
-        VariableTable() : vars() {};
-        VariableTable(std::map<std::string, Variable> m) : vars(m) {};
-        int find_var(std::string var_name, Variable *res);
-        void insert(Variable &p) {vars.insert(std::make_pair(p.get_name(), p));};
-        void insert(VariableTable &a) {vars.insert(a.vars.begin(), a.vars.end());};
-        void clear() {vars.clear();};
-        bool empty() {return vars.empty();};
-};
-
 class Function {
     private:
         int ret_type;
@@ -30,13 +16,14 @@ class Function {
         Node *n_ptr;
     public:
         Function() : var_tab(), args(), n_ptr(nullptr) {};
-        Function(int ret_type, char *name, VariableTable args) : ret_type(ret_type), name(name), args(args) {};
-        Function(int ret_type, char *name, VariableTable args, Node *n_ptr) : ret_type(ret_type), name(name), args(args), n_ptr(n_ptr) {};
+        Function(int ret_type, char *name, VariableTable args) : ret_type(ret_type), name(name), args(args) {var_tab.insert(args);};
+        Function(int ret_type, char *name, VariableTable args, Node *n_ptr) : ret_type(ret_type), name(name), args(args), n_ptr(n_ptr) {var_tab.insert(args);};
 
         int find_var(std::string var_name, Variable *res) {return var_tab.find_var(var_name, res);};
         void insert_var(Variable &v) {var_tab.insert(v);};
 
         std::string get_name() {return name;};
+        VariableTable get_tab() {return var_tab;};
         void set_ptr(Node *ptr) {n_ptr = ptr;};
         std::any execute();
 };
@@ -49,6 +36,7 @@ class FunctionTable {
         FunctionTable(std::map<std::string, Function> f) : func(f) {};
 
         Function get_func(std::string name) { return func[name]; };
+        VariableTable get_tab(std::string name) { return func[name].get_tab(); }
 
         int find_func(std::string func_name, Function* f);
         int find_var(std::string func_name, std::string var_name, Variable *res);

@@ -1,5 +1,5 @@
 #include <iostream>
-#include "table.h"
+#include "function.h"
 
 int VariableTable::find_var(std::string name, Variable *res)
 {
@@ -16,7 +16,6 @@ int VariableTable::find_var(std::string name, Variable *res)
 
 std::any Function::execute()
 {
-    var_tab.insert(args);
     if (n_ptr->type == -2) { Number *n = static_cast<Number*>(n_ptr); return n->ex(); }
     else if (n_ptr->type == -1) { Operation *op = static_cast<Operation*>(n_ptr); return op->ex(); }
     else { Variable *v = static_cast<Variable*>(n_ptr); return v->ex(); }
