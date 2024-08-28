@@ -43,6 +43,7 @@ public:
 
     std::string get_name() {return name;};
     std::any get_val() {return val;}
+    int get_size() {return size;};
     Variable &set_var(std::any);
 
     Variable& operator=(const Variable &);
@@ -60,6 +61,7 @@ public:
     int find_var(std::string var_name, Variable *res);
     void insert(Variable &p) {vars.insert(std::make_pair(p.get_name(), p));};
     void insert(VariableTable &a) {vars.insert(a.vars.begin(), a.vars.end());};
+    void reset_var(std::string name, std::any val);
     int size() {return vars.size();};
     void clear() {vars.clear();};
     bool empty() {return vars.empty();};
@@ -72,7 +74,10 @@ class Operation : public Node {
         Node **op;
         VariableTable *func_vars;
         VariableTable *glob_vars;
-        std::any arr_el_ref(Node *var_node, Node *ind_node);
+        void reset_var(Node *p, std::any val);
+        void assign_deref(Node *p, Node *expr);
+        void assign_arr(Node *arr, Node *ind, Node *expr);
+        std::any arr_el_ref(Variable *var, Node *ind_node);
         Variable *ref_name(Node*);
     public:
         Operation(VariableTable *glob, VariableTable *func, int id, int nops, ...);

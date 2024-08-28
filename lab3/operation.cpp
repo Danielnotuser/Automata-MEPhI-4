@@ -49,6 +49,85 @@ std::any deref(Variable *p)
     }
 }
 
+void Operation::assign_deref(Node *p, Node *expr)
+{
+    Operand o(expr);
+    std::any val = o.get_val();
+    if (val.type() != typeid(int)) throw std::invalid_argument("Assigning a value that does not match a pointer.");
+    Variable *v = static_cast<Variable*>(p);
+    if (func_vars->find_var(v->get_name(), v))
+    {
+        switch (v->type)
+        {
+            case 1: { int *ptr = std::any_cast<int*>(v->ex()); *ptr = std::any_cast<int>(val); func_vars->reset_var(v->get_name(), ptr); return;}
+            case 7:   throw std::invalid_argument("Changing value of the pointer const value.");
+            case 8: { int *const ptr = std::any_cast<int*const>(v->ex()); *ptr = std::any_cast<int>(val); func_vars->reset_var(v->get_name(), ptr); return; }
+            default: throw std::invalid_argument("Dereferencing a non-pointer variable.");
+        }
+    }
+    else if (glob_vars->find_var(v->get_name(), v))
+    {
+        switch (v->type)
+        {
+            case 1: { int *ptr = std::any_cast<int*>(v->ex()); *ptr = std::any_cast<int>(val); glob_vars->reset_var(v->get_name(), ptr); return;}
+            case 7:   throw std::invalid_argument("Changing value of the \"pointer const value\".");
+            case 8: { int *const ptr = std::any_cast<int*const>(v->ex()); *ptr = std::any_cast<int>(val); glob_vars->reset_var(v->get_name(), ptr); return; }
+            default: throw std::invalid_argument("Dereferencing a non-pointer variable.");
+        }
+    }
+    else throw std::runtime_error("Dereferencing uninitialized variable.");
+}
+
+void Operation::assign_arr(Node *arr, Node *ind_node, Node *expr_node)
+{
+    Variable *v = static_cast<Variable*>(arr);
+    Operand ind_op(ind_node);
+    std::any ind_any = ind_op.get_val();
+    Operand expr_op(expr_node);
+    std::any expr = expr_op.get_val();
+    if (ind_any.type() != typeid(int)) throw std::invalid_argument("Invalid index for array [] operator: index type can not be casted to int.");
+    int ind = std::any_cast<int>(ind);
+    if (func_vars->find_var(v->get_name(), v))
+    {
+        if (ind > v->get_size()) throw std::invalid_argument("Invalid index for array [] operator: index is greater than size.");
+        switch (v->type)
+        {
+            case 2: { std::vector<int> vect = std::any_cast<std::vector<int>>(v->ex());
+                        if (expr.type() == typeid(int)) vect[ind] = std::any_cast<int>(expr);
+                        else throw std::invalid_argument("Assigning value of invalid type to the array element."); func_vars->reset_var(v->get_name(), vect); }
+            case 3: { std::vector<int*> vect = std::any_cast<std::vector<int*>>(v->ex());
+                        if (expr.type() == typeid(int*)) vect[ind] = std::any_cast<int*>(expr);
+                        else throw std::invalid_argument("Assigning value of invalid type to the array element.");  func_vars->reset_var(v->get_name(), vect); }
+            case 4: { std::vector<std::vector<int>> vect = std::any_cast<std::vector<std::vector<int>>>(v->ex());
+                        if (expr.type() == typeid(std::vector<int>)) vect[ind] = std::any_cast<std::vector<int>>(expr);
+                        else throw std::invalid_argument("Assigning value of invalid type to the array element.");  func_vars->reset_var(v->get_name(), vect); }
+            case 5: { std::vector<std::vector<int*>> vect = std::any_cast<std::vector<std::vector<int*>>>(v->ex());
+                        if (expr.type() == typeid(std::vector<int*>)) vect[ind] = std::any_cast<std::vector<int*>>(expr);
+                        else throw std::invalid_argument("Assigning value of invalid type to the array element.");  func_vars->reset_var(v->get_name(), vect); }
+            case 9: case 10: case 11: throw std::invalid_argument("Assignment to the const array element.");
+        }
+    }
+    else if (glob_vars->find_var(v->get_name(), v))
+    {
+        switch (v->type)
+        {
+            case 2: { std::vector<int> vect = std::any_cast<std::vector<int>>(v->ex());
+                if (expr.type() == typeid(int)) vect[ind] = std::any_cast<int>(expr);
+                else throw std::invalid_argument("Assigning value of invalid type to the array element."); glob_vars->reset_var(v->get_name(), vect); }
+            case 3: { std::vector<int*> vect = std::any_cast<std::vector<int*>>(v->ex());
+                if (expr.type() == typeid(int*)) vect[ind] = std::any_cast<int*>(expr);
+                else throw std::invalid_argument("Assigning value of invalid type to the array element."); glob_vars->reset_var(v->get_name(), vect); }
+            case 4: { std::vector<std::vector<int>> vect = std::any_cast<std::vector<std::vector<int>>>(v->ex());
+                if (expr.type() == typeid(std::vector<int>)) vect[ind] = std::any_cast<std::vector<int>>(expr);
+                else throw std::invalid_argument("Assigning value of invalid type to the array element."); glob_vars->reset_var(v->get_name(), vect); }
+            case 5: { std::vector<std::vector<int*>> vect = std::any_cast<std::vector<std::vector<int*>>>(v->ex());
+                if (expr.type() == typeid(std::vector<int*>)) vect[ind] = std::any_cast<std::vector<int*>>(expr);
+                else throw std::invalid_argument("Assigning value of invalid type to the array element."); glob_vars->reset_var(v->get_name(), vect); }
+            case 9: case 10: case 11: throw std::invalid_argument("Assignment to the const array element.");
+        }
+    }
+}
+
 std::any address(Variable *p)
 {
     switch (p->type)
@@ -69,10 +148,9 @@ std::any address(Variable *p)
     return 0;
 }
 
-std::any Operation::arr_el_ref(Node *var_node, Node *ind_node)
+std::any Operation::arr_el_ref(Variable *var, Node *ind_node)
 {
-    if (var_node->type <= 1 || (var_node->type >= 6 && var_node->type <= 8)) { std::cerr << "Error! Reference by index to the element of array went wrong: variable is not an array."; return 0; }
-    Variable *var = static_cast<Variable*>(var_node);
+    if (var->type <= 1 || (var->type >= 6 && var->type <= 8)) { std::cerr << "Error! Reference by index to the element of array went wrong: variable is not an array."; return 0; }
     std::any any_ind = Operand(ind_node).get_val();
     if (any_ind.type() != typeid(int) && any_ind.type() != typeid(const int)) { std::cerr << "Error! Invalid index to get array element."; return 0;}
     int ind = std::any_cast<int>(any_ind);
@@ -93,11 +171,23 @@ Variable *Operation::ref_name(Node *p)
 {
     Variable *v = static_cast<Variable*>(p);
     if (!func_vars->find_var(v->get_name(), v))
-    {
         if (!glob_vars->find_var(v->get_name(), v))
             throw std::runtime_error("Invalid access to an uninitialized variable.");
-    }
     return v;
+}
+
+void Operation::reset_var(Node *p, std::any val)
+{
+    if (p->type < 0) Operand o(p);
+    else
+    {
+        Variable *v = static_cast<Variable*>(p);
+        if (func_vars->find_var(v->get_name(), v))
+            func_vars->reset_var(v->get_name(), val);
+        else if (glob_vars->find_var(v->get_name(), v))
+            glob_vars->reset_var(v->get_name(), val);
+        else throw std::runtime_error("Invalid access to an uninitialized variable.");
+    }
 }
 
 std::any Operation::ex()
@@ -109,10 +199,12 @@ std::any Operation::ex()
                                 else v->init(); if (func_vars->find_var(v->get_name(), v)) throw std::runtime_error("Initialization of already initialized value.");
                                 func_vars->insert(*v); return 0; }
         case NAME:           { Variable *v = ref_name(op[0]); return v->get_val(); }
-        case ASSIGN:         { Variable *v = ref_name(op[0]); v->set_var(Operand(op[1]).get_val()); return 0; }
+        case ASSIGN:         { reset_var(op[0], inner.refresh(op[1]).get_val()); return 0; }
+        case ASDER:          { assign_deref(op[0], op[1]); return 0; }
+        case ASARR:          { reset_var(op[0], inner.refresh(op[1]).get_val()); return 0; }
         case DEREF:          { Variable *v = ref_name(op[0]); return deref(v); }
         case ADDR:           { Variable *v = ref_name(op[0]); return address(v); }
-        case LSQUARE:        return arr_el_ref(op[0], op[1]);
+        case LSQUARE:        { Variable *v = ref_name(op[0]); return arr_el_ref(v, op[1]); }
         case WHILE:          { bool br = false; while(Operand(op[0]) != Operand(0, 0)) {
                                     try { inner.refresh(op[1]); }
                                     catch (const std::string &e) { if (e == "break") {br = true; break;} } } if (nops > 2 && !br) inner.refresh(op[2]); return 0; }

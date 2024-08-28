@@ -37,6 +37,8 @@ extern FILE *yyin;
 %nonassoc IFX
 %nonassoc ELSE
 %nonassoc NAMEX
+%nonassoc ASDER
+%nonassoc ASARR
 
 %left GE LE NE EQ GREATER LESS
 %left PLUS MINUS
@@ -81,7 +83,7 @@ function_name:
         ;
 
 function:
-        function_name stmt          { Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); f.execute(); }
+        function_name stmt          { Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); }
         ;
 
 args:
@@ -146,6 +148,10 @@ stmt:
         | BREAK SEMI                                                         { auto *op = new Operation(BREAK, 0); $$.nPtr = static_cast<Node*>(op); }
         | NAME ASSIGN expr SEMI                                              { Variable *v = new Variable(0, $1.strVal); VariableTable f = func_tab.get_tab(cur_func);
                                                                                auto *op = new Operation(&glob_vars, &f, ASSIGN, 2, static_cast<Node*>(v), $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
+        | STAR NAME ASSIGN expr SEMI %prec ASDER                             { Variable *v = new Variable(0, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
+                                                                               auto *op = new Operation(&glob_vars, &f, ASDER, 2, static_cast<Node*>(v), $4.nPtr); $$.nPtr = static_cast<Node*>(op); }
+        | NAME LSQUARE expr RSQUARE ASSIGN expr SEMI  %prec ASARR            { Variable *v = new Variable(0, $1.strVal); VariableTable f = func_tab.get_tab(cur_func);
+                                                                               auto *op = new Operation(&glob_vars, &f, ASARR, 3, static_cast<Node*>(v), $3.nPtr, $6.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | PRINT expr SEMI                                                    { auto *op = new Operation(PRINT, 1, $2.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | WHILE LPAR expr RPAR stmt %prec WHILEX                             { auto *op = new Operation(WHILE, 2, $3.nPtr, $5.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | WHILE LPAR expr RPAR stmt FINISH stmt                              { auto *op = new Operation(WHILE, 3, $3.nPtr, $5.nPtr, $7.nPtr); $$.nPtr = static_cast<Node*>(op); }
@@ -170,7 +176,8 @@ expr:
           INTEGER                               { auto *n = new Number($1.intVal); $$.nPtr = static_cast<Node*>(n); }
         | var_ref                               { $$.nPtr = $1.nPtr; }
 //        | NAME LPAR call_args RPAR              { auto *n = new Number; $$.nPtr = static_cast<Node*>(n); }
-        | NAME LSQUARE expr RSQUARE             { auto *op = new Operation(LSQUARE, 2, $1.strVal, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
+        | NAME LSQUARE expr RSQUARE             { Variable *v = new Variable(0, $1.strVal); VariableTable f = func_tab.get_tab(cur_func);
+                                                  auto *op = new Operation(&glob_vars, &f, LSQUARE, 2, static_cast<Node*>(v), $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | STAR NAME %prec DEREF                 { Variable *v = new Variable(0, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
                                                   auto *op = new Operation(&glob_vars, &f, DEREF, 1, static_cast<Node*>(v)); $$.nPtr = static_cast<Node*>(op); }
         | ADDR NAME                             { Variable *v = new Variable(0, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
