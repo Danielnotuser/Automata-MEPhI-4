@@ -9,17 +9,19 @@
 #include <fstream>
 #include <any>
 #include "type.h"
-#include "function.h"
+#include "robot.h"
 
 struct val  {
 	char* strVal;
 	int intVal;
 	Node* nPtr;
 	VariableTable argArr;
+	NodeArr argCall;
 };
 
 VariableTable glob_vars;
 FunctionTable func_tab;
+Robot rob("maze.txt");
 std::string cur_func;
 
 int yylex();
@@ -31,7 +33,8 @@ extern FILE *yyin;
 
 %token INTEGER
 %token MAIN NAME
-%token WHILE BREAK IF PRINT VALUE POINTER ZERO NOTZERO ARRAYOF CONST RETURN LPAR RPAR LSQUARE RSQUARE LBRACE RBRACE COMA SEMI ASSIGN
+%token WHILE BREAK IF PRINT VALUE POINTER ZERO NOTZERO ARRAYOF CONST RETURN LPAR RPAR LSQUARE RSQUARE LBRACE RBRACE COMA SEMI ASSIGN FUNC SIZE
+%token TOP BOTTOM LEFT RIGHT PORTAL TELEPORT
 %nonassoc WHILEX
 %nonassoc FINISH
 %nonassoc IFX
@@ -114,6 +117,7 @@ const_type:
         | CONST ARRAYOF VALUE                       { $$.intVal = 9; }
         | CONST ARRAYOF POINTER VALUE               { $$.intVal = 10; }
         | CONST ARRAYOF ARRAYOF VALUE               { $$.intVal = 11; }
+        | CONST ARRAYOF ARRAYOF POINTER VALUE       { $$.intVal = 12; }
         ;
 
 init_list:
@@ -124,7 +128,7 @@ init_list:
         ;
 
 glob_init:
-          type NAME SEMI                                { auto *v = new Variable($1.intVal, $2.strVal);
+          type NAME SEMI                               { auto *v = new Variable($1.intVal, $2.strVal);
                                                         auto *op = new Operation(&glob_vars, VALUE, 1, static_cast<Node*>(v)); $$.nPtr = static_cast<Node*>(op); }
         | type NAME ASSIGN expr SEMI                   { auto *v = new Variable($1.intVal, $2.strVal);
                                                         auto *op = new Operation(&glob_vars, VALUE, 2, static_cast<Node*>(v), $4.nPtr); $$.nPtr = static_cast<Node*>(op); }
@@ -132,7 +136,7 @@ glob_init:
                                                         auto *op = new Operation(&glob_vars, VALUE, 2, static_cast<Node*>(v), $4.nPtr); $$.nPtr = static_cast<Node*>(op); }
 
 init:
-          type NAME SEMI                                { auto *v = new Variable($1.intVal, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
+          type NAME SEMI                               { auto *v = new Variable($1.intVal, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
                                                         auto *op = new Operation(&f, VALUE, 1, static_cast<Node*>(v)); $$.nPtr = static_cast<Node*>(op); }
         | type NAME ASSIGN expr SEMI                   { auto *v = new Variable($1.intVal, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
                                                         auto *op = new Operation(&f, VALUE, 2, static_cast<Node*>(v), $4.nPtr); $$.nPtr = static_cast<Node*>(op); }
@@ -141,10 +145,11 @@ init:
         ;
 
 stmt:
-          SEMI                                                               // { auto *op = new Operation(SEMI, 2, NULL, NULL); $$.nPtr = static_cast<Node*>(op); }
+          SEMI                                                               { auto *op = new Operation(SEMI, 0); $$.nPtr = static_cast<Node*>(op); }
         | init                                                               { $$.nPtr = $1.nPtr; }
         | expr SEMI                                                          { $$.nPtr = $1.nPtr; }
-        | RETURN expr SEMI                                                   { auto *op = new Operation(RETURN, 1, $2.nPtr); $$.nPtr = static_cast<Node*>(op); }
+        | RETURN expr SEMI                                                   { Function f; func_tab.find_func(cur_func, &f); Number *n = new Number(f.get_ret_type());
+                                                                                auto *op = new Operation(RETURN, 2, static_cast<Node*>(n), $2.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | BREAK SEMI                                                         { auto *op = new Operation(BREAK, 0); $$.nPtr = static_cast<Node*>(op); }
         | NAME ASSIGN expr SEMI                                              { Variable *v = new Variable(0, $1.strVal); VariableTable f = func_tab.get_tab(cur_func);
                                                                                auto *op = new Operation(&glob_vars, &f, ASSIGN, 2, static_cast<Node*>(v), $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
@@ -175,7 +180,7 @@ var_ref:
 expr:
           INTEGER                               { auto *n = new Number($1.intVal); $$.nPtr = static_cast<Node*>(n); }
         | var_ref                               { $$.nPtr = $1.nPtr; }
-//        | NAME LPAR call_args RPAR              { auto *n = new Number; $$.nPtr = static_cast<Node*>(n); }
+        | call_func                             { $$.nPtr = $1.nPtr; }
         | NAME LSQUARE expr RSQUARE             { Variable *v = new Variable(0, $1.strVal); VariableTable f = func_tab.get_tab(cur_func);
                                                   auto *op = new Operation(&glob_vars, &f, LSQUARE, 2, static_cast<Node*>(v), $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | STAR NAME %prec DEREF                 { Variable *v = new Variable(0, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
@@ -187,31 +192,48 @@ expr:
         | expr MINUS expr                       { auto *op = new Operation(MINUS, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr STAR expr                        { auto *op = new Operation(STAR, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr SLASH expr                       { auto *op = new Operation(SLASH, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
-        | expr PERC expr                        { auto *op = new Operation(PLUS, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
+        | expr PERC expr                        { auto *op = new Operation(PERC, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr LESS expr                        { auto *op = new Operation(LESS, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr GREATER expr                     { auto *op = new Operation(GREATER, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr GE expr                          { auto *op = new Operation(GE, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr LE expr                          { auto *op = new Operation(LE, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr NE expr                          { auto *op = new Operation(NE, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
         | expr EQ expr                          { auto *op = new Operation(EQ, 2, $1.nPtr, $3.nPtr); $$.nPtr = static_cast<Node*>(op); }
+        | SIZE NAME                             { Variable *v = new Variable(0, $2.strVal); VariableTable f = func_tab.get_tab(cur_func);
+                                                  auto *op = new Operation(&glob_vars, &f, SIZE, 1, static_cast<Node*>(v)); $$.nPtr = static_cast<Node*>(op); }
+        | robot                                 { $$.nPtr = $1.nPtr; }
         | LPAR expr RPAR                        { $$.nPtr = $2.nPtr; }
         ;
 
-/*
+call_func:
+          NAME LPAR call_args RPAR              { VariableTable ftab = func_tab.get_tab(cur_func);
+                                                  Function f; if (!func_tab.find_func($1.strVal, &f)) std::cerr << "Reference to the unimplemented function." << std::endl;
+                                                  auto *op = new Operation(&f, &glob_vars, &ftab, FUNC, $3.argCall); $$.nPtr = static_cast<Node*>(op); }
+         ;
 call_args:
-        { $$.argArr = VariableTable(); }
-      | var_ref call_add   { Variable *v = static_cast<Variable*>($1.nPtr);
-                               VariableTable res, a = $2.argArr; res.insert(*v);
-                               if (!a.empty()) res.insert(a); $$.argArr = res; }
+        { $$.argCall = NodeArr(); }
+      | var_ref call_add   { NodeArr res, a = $2.argCall; res.nodes.push_back($1.nPtr);
+                             if (!a.nodes.empty()) res.nodes.insert(res.nodes.end(), a.nodes.begin(), a.nodes.end()); $$.argCall = res; }
       ;
 
 call_add:
         { $$.argArr = VariableTable(); }
-      | COMA var_ref call_add { Variable v($2.intVal, $3.strVal, std::any());
-                               VariableTable res, a = $4.argArr; res.insert(*v);
-                               if (!a.empty()) res.insert(a); $$.argArr = res; }
+      | COMA var_ref call_add { NodeArr res, a = $3.argCall; res.nodes.push_back($2.nPtr);
+                                if (!a.nodes.empty()) res.nodes.insert(res.nodes.end(), a.nodes.begin(), a.nodes.end()); $$.argCall = res; }
       ;
-*/
+
+robot:
+          TOP            { auto *op = new Operation(&rob, TOP); $$.nPtr = static_cast<Node*>(op); }
+        | BOTTOM         { auto *op = new Operation(&rob, BOTTOM); $$.nPtr = static_cast<Node*>(op); }
+        | LEFT           { auto *op = new Operation(&rob, LEFT); $$.nPtr = static_cast<Node*>(op); }
+        | RIGHT          { auto *op = new Operation(&rob, RIGHT); $$.nPtr = static_cast<Node*>(op); }
+        | PORTAL         { auto *op = new Operation(&rob, PORTAL); $$.nPtr = static_cast<Node*>(op); }
+        | TELEPORT       { auto *op = new Operation(&rob, TELEPORT); $$.nPtr = static_cast<Node*>(op); }
+        ;
+
+
+
+
 
 %%
 
@@ -222,8 +244,9 @@ void yyerror(const char *s) {
 
 int main(int argc, const char *argv[])
 {
-    if (argc >= 2) yyin = fopen(argv[1], "r");
-    if (!yyin) yyin = stdin;
-    yyparse();
+    if (argc >= 2)  yyin = fopen(argv[1], "r");
+    else yyin = stdin;
+    try {yyparse();}
+    catch (const int &ret) { return ret; }
     return 0;
 }

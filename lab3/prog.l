@@ -4,7 +4,6 @@
 
 %{
 #include "type.h"
-#include "function.h"
 
 struct val  {
 	char* strVal;
@@ -38,6 +37,13 @@ void yyerror(const char*);
 "if"               return IF;
 "else"             return ELSE;
 "print"            return PRINT;
+"size"             return SIZE;
+"top"              return TOP;
+"bottom"           return BOTTOM;
+"left"             return LEFT;
+"right"            return RIGHT;
+"portal"           return PORTAL;
+"teleport"         return TELEPORT;
 "main"             {yylval.strVal = strdup(yytext); return MAIN;}
 
 [a-z]+[0-9_a-z]*     {

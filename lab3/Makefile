@@ -8,7 +8,7 @@ YFLAGS = -d -y -v -Wcounterexamples -Wno-yacc
 BIN = lab
 YFILE = prog.y
 LFILE = prog.l
-SRC = operation.cpp variable.cpp operand.cpp function.cpp
+SRC = operation.cpp variable.cpp operand.cpp function.cpp robot.cpp
 YOUT = y.tab.c y.tab.h
 LOUT = lex.yy.c
 

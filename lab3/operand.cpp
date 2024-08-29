@@ -121,6 +121,7 @@ Operand::Operand(Node* p)
     {
         Operation *o = static_cast<Operation*>(p);
         val = o->ex();
+        if (val.type() == typeid(Variable*)) {type = -1; return;}
         type = 0;
         if (val.type() == typeid(int))
             type = 0;
@@ -144,5 +145,5 @@ void Operand::print(const char *prompt)
     if (type == 0 || type == 7)
         std::cout << prompt << std::any_cast<int>(val) << std::endl;
     else
-        std::cout << prompt << "Error! Invalid \"print\" argument. Only type value is required.";
+        std::cout << prompt << "Error! Invalid \"print\" argument. Only type value is required." << std::endl;
 }
