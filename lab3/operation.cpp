@@ -5,7 +5,7 @@
 #include "operand.h"
 #include "y.tab.h"
 
-Operation::Operation(Function *f, VariableTable *glob, VariableTable *func, int id, NodeArr n) : id(id), func_vars(func), glob_vars(glob), f(f)
+Operation::Operation(Function &f, VariableTable *glob, VariableTable *func, int id, NodeArr n) : id(id), func_vars(func), glob_vars(glob), f(f)
 {
     type = -1;
     std::vector<Node*> v = n.nodes;
@@ -113,15 +113,15 @@ void call_return(int r_t, std::any ret)
 {
     try {
         switch (r_t) {
-            case 0: { int res = std::any_cast<int>(ret); throw res;}
-            case 1: { int *res = std::any_cast<int*>(ret); throw res;}
-            case 2: case 9:  { std::vector<int> res = std::any_cast<std::vector<int>>(ret); throw res;}
-            case 3: case 10: { std::vector<int*> res = std::any_cast<std::vector<int*>>(ret); throw res;}
-            case 4: case 11: { std::vector<std::vector<int>> res = std::any_cast<std::vector<std::vector<int>>>(ret); throw res;}
-            case 5: case 12: { std::vector<std::vector<int*>> res = std::any_cast<std::vector<std::vector<int*>>>(ret); throw res;}
-            case 6: { const int res = std::any_cast<const int>(ret); throw res;}
-            case 7: { const int *res = std::any_cast<const int*>(ret); throw res;}
-            case 8: { int *const res = std::any_cast<int*const>(ret); throw res;}
+            case 0: { int res = std::any_cast<int>(ret); std::any an_res = res; throw an_res; }
+            case 1: { int *res = std::any_cast<int*>(ret); std::any an_res = res; throw an_res; }
+            case 2: case 9:  { std::vector<int> res = std::any_cast<std::vector<int>>(ret); std::any an_res = res; throw an_res; }
+            case 3: case 10: { std::vector<int*> res = std::any_cast<std::vector<int*>>(ret); std::any an_res = res; throw an_res; }
+            case 4: case 11: { std::vector<std::vector<int>> res = std::any_cast<std::vector<std::vector<int>>>(ret); std::any an_res = res; throw an_res; }
+            case 5: case 12: { std::vector<std::vector<int*>> res = std::any_cast<std::vector<std::vector<int*>>>(ret); std::any an_res = res; throw an_res; }
+            case 6: { const int res = std::any_cast<const int>(ret); std::any an_res = res; throw an_res; }
+            case 7: { const int *res = std::any_cast<const int*>(ret); std::any an_res = res; throw an_res; }
+            case 8: { int *const res = std::any_cast<int*const>(ret); std::any an_res = res; throw an_res; }
         }
     }
     catch (const std::bad_any_cast &e)
@@ -139,8 +139,9 @@ void Operation::call_func()
         arg.refresh(op[i]);
         values.push_back(arg.get_val());
     }
-    f->update_args(values);
-    f->execute();
+    std::cout << f.get_name() << std::endl;
+    f.update_args(values);
+    f.execute();
 }
 
 std::any Operation::ex()
@@ -163,8 +164,8 @@ std::any Operation::ex()
         case LSQUARE:        { return arr_elref(op[0], op[1]); }
         case SIZE:           { Variable *v = ref_name(op[0]); return v->get_size(); }
         case FUNC:           { try { call_func(); } catch (std::any &a) { return a; }}
-        case RETURN:         { std::any ret = inner.refresh(op[0]).get_val(); int r_t = std::any_cast<int>(inner.refresh(op[1]).get_val()); call_return(r_t, ret); }
-        case WHILE:          { bool br = false; while(Operand(op[0]) != Operand(0, 0)) {
+        case RETURN:         { int r_t = std::any_cast<int>(inner.refresh(op[0]).get_val()); std::any ret = inner.refresh(op[1]).get_val(); call_return(r_t, ret); }
+        case WHILE:          { bool br = false; while(inner.refresh(op[0]) != Operand(0, 0)) {
                                     try { inner.refresh(op[1]); }
                                     catch (const std::string &e) { if (e == "break") {br = true; break;} throw;} } if (nops > 2 && !br) inner.refresh(op[2]); return 0; }
         case BREAK:          throw "break";

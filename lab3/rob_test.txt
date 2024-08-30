@@ -1,0 +1,6 @@
+value main() {
+    while (left);
+    portal;
+    while (bottom);
+    teleport;
+}

@@ -1,0 +1,49 @@
+value forward(value dir)
+{
+    if (dir == 1) return left;
+    if (dir == 2) return top;
+    if (dir == 3) return right;
+    if (dir == 4) return bottom;
+}
+
+value back(value dir)
+{
+    if (dir == 1) return right;
+    if (dir == 2) return bottom;
+    if (dir == 3) return left;
+    if (dir == 4) return top;
+}
+
+value turn_right(value dir)
+{
+    if (dir < 4) return dir + 1;
+    else return 1;
+}
+
+value turn_left(value dir)
+{
+    if (dir > 1) return dir - 1;
+    else return 4;
+}
+
+value has_right(value dir)
+{
+    dir = turn_right(dir);
+    if (forward(dir)) { back(dir); dir = turn_left(dir); return 1; }
+    else { dir = turn_left(dir); return 0; }
+}
+
+value main() {
+    value dir = 2;
+    while(forward(dir));
+    while (1)
+    {
+        dir = turn_left(dir);
+        while(forward(dir))
+        {
+            print dir;
+            if (has_right(dir)) { dir = turn_right(dir); print dir; }
+        }
+    }
+    return 0;
+}

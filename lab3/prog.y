@@ -15,7 +15,7 @@ struct val  {
 	char* strVal;
 	int intVal;
 	Node* nPtr;
-	VariableTable argArr;
+	Arguments argArr;
 	NodeArr argCall;
 };
 
@@ -68,11 +68,11 @@ program:
         ;
 
 main_name:
-        VALUE MAIN LPAR RPAR { cur_func = $2.strVal; Function f(0, $2.strVal, VariableTable()); func_tab.insert_func(f); }
+        VALUE MAIN LPAR RPAR { Arguments args; cur_func = $2.strVal; Function f(0, $2.strVal, args); func_tab.insert_func(f); }
         ;
 
 main:
-        main_name stmt      {  Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); f.execute(); }
+        main_name stmt      {  Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); func_tab.update_func(cur_func, f); f.execute(); }
         ;
 
 functions:
@@ -82,23 +82,26 @@ functions:
         ;
 
 function_name:
-        type NAME LPAR args RPAR    { cur_func = $2.strVal; Function f($1.intVal, $2.strVal, $4.argArr); func_tab.insert_func(f); }
+        type NAME LPAR args RPAR    { cur_func = $2.strVal; Arguments args = $4.argArr;
+                                        Function f($1.intVal, $2.strVal, args); func_tab.insert_func(f); }
         ;
 
 function:
-        function_name stmt          { Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); }
+        function_name stmt          { Function f; func_tab.find_func(cur_func, &f); f.set_ptr($2.nPtr); func_tab.update_func(cur_func, f); }
         ;
 
 args:
-                        { $$.argArr = VariableTable(); }
-      | type NAME add   { Variable v($1.intVal, $2.strVal); VariableTable res, a = $3.argArr; res.insert(v);
-                            if (!a.empty()) res.insert(a); $$.argArr = res; }
+                        { $$.argArr = Arguments(); }
+      | type NAME add   { Variable v($1.intVal, $2.strVal); Arguments res, a = $3.argArr;
+                            res.vars.push_back(v);
+                            if (!a.vars.empty()) res.vars.insert(res.vars.end(), a.vars.begin(), a.vars.end()); $$.argArr = res; }
       ;
 
 add:
-                            { $$.argArr = VariableTable(); }
-      | COMA type NAME add  { Variable v($2.intVal, $3.strVal); VariableTable res, a = $4.argArr; res.insert(v);
-                                if (!a.empty()) res.insert(a); $$.argArr = res; }
+                            { $$.argArr = Arguments(); }
+      | COMA type NAME add  { Variable v($2.intVal, $3.strVal); Arguments res, a = $4.argArr;
+                                res.vars.push_back(v);
+                                if (!a.vars.empty()) res.vars.insert(res.vars.end(), a.vars.begin(), a.vars.end()); $$.argArr = res; }
       ;
 
 type:
@@ -208,7 +211,7 @@ expr:
 call_func:
           NAME LPAR call_args RPAR              { VariableTable ftab = func_tab.get_tab(cur_func);
                                                   Function f; if (!func_tab.find_func($1.strVal, &f)) std::cerr << "Reference to the unimplemented function." << std::endl;
-                                                  auto *op = new Operation(&f, &glob_vars, &ftab, FUNC, $3.argCall); $$.nPtr = static_cast<Node*>(op); }
+                                                  auto *op = new Operation(f, &glob_vars, &ftab, FUNC, $3.argCall); $$.nPtr = static_cast<Node*>(op); }
          ;
 call_args:
         { $$.argCall = NodeArr(); }
@@ -217,7 +220,7 @@ call_args:
       ;
 
 call_add:
-        { $$.argArr = VariableTable(); }
+        { $$.argCall = NodeArr(); }
       | COMA var_ref call_add { NodeArr res, a = $3.argCall; res.nodes.push_back($2.nPtr);
                                 if (!a.nodes.empty()) res.nodes.insert(res.nodes.end(), a.nodes.begin(), a.nodes.end()); $$.argCall = res; }
       ;
@@ -247,6 +250,6 @@ int main(int argc, const char *argv[])
     if (argc >= 2)  yyin = fopen(argv[1], "r");
     else yyin = stdin;
     try {yyparse();}
-    catch (const int &ret) { return ret; }
+    catch (std::any &ret) { std::cout << "Program finished with exit code " << std::any_cast<int>(ret) << std::endl; return std::any_cast<int>(ret); }
     return 0;
 }

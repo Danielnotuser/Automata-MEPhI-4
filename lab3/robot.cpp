@@ -32,5 +32,96 @@ Robot::Robot(const std::string &filename)
     }
 
     file.close();
+    print();
 }
 
+int Robot::top()
+{
+    if (maze[cur_pos.first - 1][cur_pos.second] != '#')
+    {
+        maze[cur_pos.first][cur_pos.second] = '.';
+        cur_pos.first--;
+        maze[cur_pos.first][cur_pos.second] = 'R';
+        print();
+        if (cur_pos == maze_exit)
+        {
+            std::cout << "Success!\n";
+            exit(0);
+        }
+        return 1;
+    }
+    else return 0;
+}
+
+int Robot::bottom()
+{
+    if (maze[cur_pos.first + 1][cur_pos.second] != '#')
+    {
+        maze[cur_pos.first][cur_pos.second] = '.';
+        cur_pos.first++;
+        maze[cur_pos.first][cur_pos.second] = 'R';
+        print();
+        if (cur_pos == maze_exit)
+        {
+            std::cout << "Success!\n";
+            exit(0);
+        } return 1;
+    }
+    else return 0;
+}
+
+int Robot::right()
+{
+    if (maze[cur_pos.first][cur_pos.second + 1] != '#')
+    {
+        maze[cur_pos.first][cur_pos.second] = '.';
+        cur_pos.second++;
+        maze[cur_pos.first][cur_pos.second] = 'R';
+        print();
+        if (cur_pos == maze_exit)
+        {
+            std::cout << "Success!\n";
+            exit(0);
+        }
+        return 1;
+    }
+    else return 0;
+}
+
+int Robot::left()
+{
+    if (maze[cur_pos.first][cur_pos.second - 1] != '#')
+    {
+        maze[cur_pos.first][cur_pos.second] = '.';
+        cur_pos.second--;
+        maze[cur_pos.first][cur_pos.second] = 'R';
+        print();
+        if (cur_pos == maze_exit)
+        {
+            std::cout << "Success!\n";
+            exit(0);
+        }
+        return 1;
+    }
+    else return 0;
+}
+
+void Robot::teleport()
+{
+    if (portal_stack.empty()) throw std::invalid_argument("You have teleported into the abyss!");
+    maze[cur_pos.first][cur_pos.second] = '.';
+    cur_pos = portal_stack.top();
+    maze[cur_pos.first][cur_pos.second] = 'R';
+    print();
+    portal_stack.pop();
+}
+
+void Robot::print()
+{
+    for (size_t i = 0; i < maze.size(); i++)
+    {
+        for (size_t j = 0; j < maze[i].size(); j++)
+            std::cout << maze[i][j];
+        std::cout << std::endl;
+    }
+}

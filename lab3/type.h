@@ -44,14 +44,14 @@ public:
     void pointer_init(Variable*);
     explicit Variable(const Variable&);
 
-    std::any ex() override { return val; };
+    std::any ex() override {return val;};
     bool empty() { return !val.has_value(); }
 
-    std::string get_name() {return name;};
+    std::string get_name() const {return name;};
     std::any &get_val() {return val;};
     int* get_addr();
     const int* get_const_addr();
-    int get_size() {return size;};
+    int get_size() const {return size;};
     Variable &set_var(std::any);
 
     Variable& operator=(const Variable &);
@@ -60,18 +60,28 @@ public:
     ~Variable() = default;
 
 };
+class Arguments {
+public:
+    std::vector<Variable> vars;
+    Arguments() : vars() {};
+    Arguments(std::vector<Variable> m) : vars(m) {};
+
+    void reset_all(std::vector<std::any>);
+
+};
 
 class VariableTable {
 private:
-    std::vector<std::pair<std::string, Variable>> vars;
+    std::map<std::string, Variable> vars;
 public:
     VariableTable() = default;
-    VariableTable(std::vector<std::pair<std::string, Variable>> m) : vars(m) {};
+    VariableTable(std::map<std::string, Variable> m) : vars(m) {};
     VariableTable(const VariableTable& v) {vars = v.vars;};
 
     int find_var(std::string var_name, Variable *res);
-    void insert(Variable &p) {vars.push_back(std::make_pair(p.get_name(), p));};
-    void insert(VariableTable &a) {vars.insert(vars.end(), a.vars.begin(), a.vars.end());};
+    void insert(Variable &p) {vars.insert(std::make_pair(p.get_name(), p));};
+    void insert(VariableTable &a) {vars.insert(a.vars.begin(), a.vars.end());};
+    void insert(const Arguments &a);
 
     void reset_var(std::string name, std::any val);
     void reset_all(std::vector<std::any>);
@@ -93,12 +103,12 @@ private:
     int ret_type;
     std::string name;
     VariableTable var_tab;
-    VariableTable args;
+    Arguments args;
     Node *n_ptr;
 public:
     Function() : var_tab(), args(), n_ptr(nullptr) {};
-    Function(int ret_type, char *name, VariableTable args) : ret_type(ret_type), name(name), args(args) {var_tab.insert(args);};
-    Function(int ret_type, char *name, VariableTable args, Node *n_ptr) : ret_type(ret_type), name(name), args(args), n_ptr(n_ptr) {var_tab.insert(args);};
+    Function(int ret_type, char *name, Arguments &args) : ret_type(ret_type), name(name), args(args) {};
+    Function(int ret_type, char *name, Arguments &args, Node *n_ptr) : ret_type(ret_type), name(name), args(args), n_ptr(n_ptr) {};
 
     int find_var(std::string var_name, Variable *res) {return var_tab.find_var(var_name, res);};
     void insert_var(Variable &v) {var_tab.insert(v);};
@@ -125,6 +135,7 @@ public:
     int find_func(std::string func_name, Function* f);
     int find_var(std::string func_name, std::string var_name, Variable *res);
 
+    void update_func(std::string fname, Function f) { func[fname] = f; };
     void insert_var(std::string fname, Variable &v) { func[fname].insert_var(v); };
     void insert_func(Function f) { func[f.get_name()] = f; };
 
@@ -138,7 +149,7 @@ class Operation : public Node {
         Node **op;
         VariableTable *func_vars;
         VariableTable *glob_vars;
-        Function *f;
+        Function f;
         Robot *rob;
         void reset_var(Node *p, std::any val);
         std::any pointer_deref(Node *p, Node *expr = nullptr);
@@ -148,8 +159,8 @@ class Operation : public Node {
         void call_func();
     public:
         Operation() : id(0), op(nullptr) {type = -1;};
-        Operation(Robot *r, int id) : id(id), rob(r) {};                                                // Robot operation
-        Operation(Function *f, VariableTable *glob, VariableTable *func, int id, NodeArr n);            // Call Function operation
+        Operation(Robot *r, int id) : id(id), rob(r) {type = -1;};                                       // Robot operation
+        Operation(Function &f, VariableTable *glob, VariableTable *func, int id, NodeArr n);             // Call Function operation
         Operation(VariableTable *glob, VariableTable *func, int id, int nops, ...);                     // Value init/ref operation
         Operation(VariableTable *func, int id, int nops, ...);                                          // Value glob_init operation
         Operation(int id, int nops, ...);                                                               // Default operation
